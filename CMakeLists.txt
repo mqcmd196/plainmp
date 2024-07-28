@@ -1,0 +1,21 @@
+set(CMAKE_CXX_STANDARD 17)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS_INIT} -Wall -fPIC")
+
+find_package(Eigen3 REQUIRED)
+ADD_DEFINITIONS(-DEIGEN_NO_DEBUG)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
+set(BUILD_PYTHON_INTERFACE OFF)
+add_subdirectory("tinyfk")
+include_directories("tinyfk/include")
+include_directories("primitive_sdf")
+# add_executable(main main.cpp)
+# target_link_libraries(main tinyfk)
+
+add_subdirectory(pybind11)
+pybind11_add_module(_fused binding.cpp)
+target_link_libraries(_fused PRIVATE tinyfk)
+install(TARGETS _fused DESTINATION .)
