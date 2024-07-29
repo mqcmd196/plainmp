@@ -1,7 +1,8 @@
 import time
 from pathlib import Path
 import build._fused as fused
-from build._fused import FusedSpheresCollisionChecker, SDFBase, SphereAttachentSpec, SDFAttachmentSpec
+from build._fused import FusedSpheresCollisionChecker, SphereAttachentSpec, SDFAttachmentSpec
+import build._fused.primitive_sdf as psdf 
 import tinyfk
 import numpy as np
 from skmp.robot.utils import load_collision_spheres
@@ -10,19 +11,19 @@ from skrobot.model.primitives import Box, Cylinder
 from skrobot.sdf import UnionSDF, BoxSDF, SphereSDF, CylinderSDF
 np.random.seed(0)
 
-def _sksdf_to_cppsdf(sksdf) -> SDFBase:
+def _sksdf_to_cppsdf(sksdf) -> psdf.SDFBase:
     if isinstance(sksdf, BoxSDF):
-        pose = fused.Pose(sksdf.worldpos(), sksdf.worldrot())
-        sdf = fused.BoxSDF(sksdf._width, pose)
+        pose = psdf.Pose(sksdf.worldpos(), sksdf.worldrot())
+        sdf = psdf.BoxSDF(sksdf._width, pose)
     elif isinstance(sksdf, CylinderSDF):
-        pose = fused.Pose(sksdf.worldpos(), sksdf.worldrot())
-        sdf = fused.CylinderSDF(sksdf._radius, sksdf._height, pose)
+        pose = psdf.Pose(sksdf.worldpos(), sksdf.worldrot())
+        sdf = psdf.CylinderSDF(sksdf._radius, sksdf._height, pose)
     elif isinstance(sksdf, UnionSDF):
         for s in sksdf.sdf_list:
             if not isinstance(s, (BoxSDF, CylinderSDF)):
                 raise ValueError("Unsupported SDF type")
         cpp_sdf_list = [_sksdf_to_cppsdf(s) for s in sksdf.sdf_list]
-        sdf = fused.UnionSDF(cpp_sdf_list)
+        sdf = psdf.UnionSDF(cpp_sdf_list)
     else:
         raise ValueError("Unsupported SDF type")
     return sdf
@@ -134,6 +135,7 @@ v.show()
 time.sleep(1.0)
 for q in ret:
     set_robot_state(fetch, conf.get_control_joint_names(), q)
+    colvis.update(fetch)
     time.sleep(1.0)
 
 import time; time.sleep(1000)
