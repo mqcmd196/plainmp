@@ -109,27 +109,29 @@ PYBIND11_MODULE(_fused, m) {
                     primitive_sdf::SDFBase::Ptr>())
       .def("is_valid", &FusedSpheresCollisionChecker::is_valid);
 
-  py::class_<Pose>(m, "Pose", py::module_local()).def(
+  auto m_psdf = m.def_submodule("primitive_sdf");
+  py::class_<Pose>(m_psdf, "Pose", py::module_local()).def(
       py::init<const Eigen::Vector3d&, const Eigen::Matrix3d&>());
+
   py::class_<SDFBase, SDFBase::Ptr>(
-      m, "SDFBase", py::module_local());  // user is not supposed to instantiate this class. This to
+      m_psdf, "SDFBase", py::module_local());  // user is not supposed to instantiate this class. This to
                       // tell pybind that this is a base class
   py::class_<PrimitiveSDFBase, PrimitiveSDFBase::Ptr, SDFBase>(
-      m, "PrimitiveSDFBase", py::module_local());  // user is not supposed to instantiate this class. This to
+      m_psdf, "PrimitiveSDFBase", py::module_local());  // user is not supposed to instantiate this class. This to
                       // tell pybind that this is a base class
-  py::class_<UnionSDF, UnionSDF::Ptr, SDFBase>(m, "UnionSDF", py::module_local())
+  py::class_<UnionSDF, UnionSDF::Ptr, SDFBase>(m_psdf, "UnionSDF", py::module_local())
       .def(py::init<std::vector<SDFBase::Ptr>>())
       .def("evaluate_batch", &UnionSDF::evaluate_batch)
       .def("evaluate", &UnionSDF::evaluate);
-  py::class_<BoxSDF, BoxSDF::Ptr, PrimitiveSDFBase>(m, "BoxSDF", py::module_local())
+  py::class_<BoxSDF, BoxSDF::Ptr, PrimitiveSDFBase>(m_psdf, "BoxSDF", py::module_local())
       .def(py::init<const Eigen::Vector3d&, const Pose&>())
       .def("evaluate_batch", &BoxSDF::evaluate_batch)
       .def("evaluate", &BoxSDF::evaluate);
-  py::class_<CylinderSDF, CylinderSDF::Ptr, PrimitiveSDFBase>(m, "CylinderSDF", py::module_local())
+  py::class_<CylinderSDF, CylinderSDF::Ptr, PrimitiveSDFBase>(m_psdf, "CylinderSDF", py::module_local())
       .def(py::init<double, double, const Pose&>())
       .def("evaluate_batch", &CylinderSDF::evaluate_batch)
       .def("evaluate", &CylinderSDF::evaluate);
-  py::class_<SphereSDF, SphereSDF::Ptr, PrimitiveSDFBase>(m, "SphereSDF", py::module_local())
+  py::class_<SphereSDF, SphereSDF::Ptr, PrimitiveSDFBase>(m_psdf, "SphereSDF", py::module_local())
       .def(py::init<double, const Pose&>())
       .def("evaluate_batch", &SphereSDF::evaluate_batch)
       .def("evaluate", &SphereSDF::evaluate);
