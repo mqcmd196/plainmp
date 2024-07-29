@@ -67,18 +67,29 @@ for key in keys:
 
 kin = FusedSpheresCollisionChecker(urdf_model_path, joint_names, parent_link_names, centers, radii, cppsdf)
 start = np.array([ 0.,          1.31999949,  1.40000015, -0.20000077,  1.71999929,  0., 1.6600001,   0.        ])
-goal = np.array([ 0.38625,     0.20565826,  1.41370123,  0.30791941, -1.82230466,  0.24521043, 0.41718824,  6.01064401])
+goal = np.array([ 0.386,     0.20565826,  1.41370123,  0.30791941, -1.82230466,  0.24521043, 0.41718824,  6.01064401])
 ret = kin.is_valid(start)
 print(ret)
 ret = kin.is_valid(goal)
 print(ret)
 
+# bench
 N = 2000
 Q = np.random.randn(N, 7)
 ts = time.time()
 for i in range(N):
     ret = kin.is_valid(Q[i])
-print(time.time() - ts)
+print(f"per iter {(time.time() - ts) / N * 10 ** 6} [us]")
+
+# solve rrt
+from ompl import Algorithm, Planner
+min_angles = np.array([0.0, -1.6056, -1.221, -np.pi * 2, -2.251, -np.pi * 2, -2.16, -np.pi * 2])
+max_angles = np.array([0.38615, 1.6056, 1.518, np.pi * 2, 2.251, np.pi * 2, 2.16, np.pi * 2])
+planner = Planner(min_angles, max_angles, lambda q: kin.is_valid(q), 10000, 0.1)
+
+ts = time.time()
+ret = planner.solve(start, goal, simplify=False)
+print(f"planning time {1000 * (time.time() - ts)} [ms]")
 
 
 from skmp.visualization.collision_visualizer import CollisionSphereVisualizationManager
@@ -102,4 +113,10 @@ self_body_obstacles = conf.get_self_body_obstacles()
 for obs in self_body_obstacles:
     v.add(obs)
 v.show()
+
+time.sleep(1.0)
+for q in ret:
+    set_robot_state(fetch, conf.get_control_joint_names(), q)
+    time.sleep(1.0)
+
 import time; time.sleep(1000)
