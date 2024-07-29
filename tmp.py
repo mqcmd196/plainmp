@@ -1,13 +1,12 @@
 import time
 from pathlib import Path
 import build._fused as fused
-from build._fused import FusedSpheresCollisionChecker, SDFBase
-from build._fused import Pose as Pose_
+from build._fused import FusedSpheresCollisionChecker, SDFBase, SphereAttachentSpec, SDFAttachmentSpec
 import tinyfk
 import numpy as np
 from skmp.robot.utils import load_collision_spheres
 from skmp.robot.fetch import FetchConfig
-from skrobot.model.primitives import Box
+from skrobot.model.primitives import Box, Cylinder
 from skrobot.sdf import UnionSDF, BoxSDF, SphereSDF, CylinderSDF
 np.random.seed(0)
 
@@ -55,17 +54,35 @@ keys = list(coll_sphers.keys())
 # revser order
 # keys = keys[::-1]
 
-parent_link_names = []
-centers = []
-radii = []
+sphere_spec_list = []
 for key in keys:
     value = coll_sphers[key]
     for i in range(len(value)):
-        parent_link_names.append(key)
-        centers.append(value.center_list[i])
-        radii.append(value.radius_list[i])
+        spec = SphereAttachentSpec(key, value.center_list[i], value.radius_list[i])
+        sphere_spec_list.append(spec)
 
-kin = FusedSpheresCollisionChecker(urdf_model_path, joint_names, parent_link_names, centers, radii, cppsdf)
+
+# attach sdfs
+neck_lower = Box([0.1, 0.18, 0.08], face_colors=[255, 255, 255, 200], with_sdf=True)
+neck_lower.translate([0.0, 0.0, 0.97])
+neck_upper = Box([0.05, 0.17, 0.15], face_colors=[255, 255, 255, 200], with_sdf=True)
+neck_upper.translate([-0.035, 0.0, 0.92])
+head = Cylinder(0.235, 0.12, face_colors=[255, 255, 255, 200], with_sdf=True)
+head.translate([0.0, 0.0, 1.04])
+torso_position =np.array([-0.086875, 0., 0.37743 ])
+neck_lower.translate(-torso_position)
+neck_upper.translate(-torso_position)
+head.translate(-torso_position)
+
+sdf_specs = []
+for o in [neck_lower, neck_upper, head]:
+    primitive_sdf = _sksdf_to_cppsdf(o.sdf)
+    print(primitive_sdf)
+    sdf_attachment_spec = SDFAttachmentSpec("torso_lift_link", o.worldpos(), primitive_sdf)
+    sdf_specs.append(sdf_attachment_spec)
+
+
+kin = FusedSpheresCollisionChecker(urdf_model_path, joint_names, sphere_spec_list, sdf_specs, cppsdf)
 start = np.array([ 0.,          1.31999949,  1.40000015, -0.20000077,  1.71999929,  0., 1.6600001,   0.        ])
 goal = np.array([ 0.386,     0.20565826,  1.41370123,  0.30791941, -1.82230466,  0.24521043, 0.41718824,  6.01064401])
 ret = kin.is_valid(start)
@@ -88,7 +105,7 @@ max_angles = np.array([0.38615, 1.6056, 1.518, np.pi * 2, 2.251, np.pi * 2, 2.16
 planner = Planner(min_angles, max_angles, lambda q: kin.is_valid(q), 10000, 0.1)
 
 ts = time.time()
-ret = planner.solve(start, goal, simplify=False)
+ret = planner.solve(start, goal, simplify=True)
 print(f"planning time {1000 * (time.time() - ts)} [ms]")
 
 
