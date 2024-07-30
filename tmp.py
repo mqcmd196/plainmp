@@ -76,6 +76,11 @@ specs, pairs = load_collision_spheres(Path("./fetch_coll_spheres.yaml"))
 kin = FusedSpheresCollisionChecker(urdf_model_path, joint_names, specs, pairs, sdfs)
 start = np.array([ 0.,          1.31999949,  1.40000015, -0.20000077,  1.71999929,  0., 1.6600001,   0.        ])
 goal = np.array([ 0.386,     0.20565826,  1.41370123,  0.30791941, -1.82230466,  0.24521043, 0.41718824,  6.01064401])
+_, j = kin.evaluate(start)
+print(j)
+assert False
+
+
 from ompl import Algorithm, Planner
 
 # solve rrt

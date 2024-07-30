@@ -29,7 +29,8 @@ class FusedSpheresCollisionChecker {
       const std::vector<PrimitiveSDFBase::Ptr>& fixed_sdfs);
 
   bool is_valid(const std::vector<double>& q);
-  double evaluate(const std::vector<double>& q) const;
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
+      const std::vector<double>& q) const;
 
  private:
   std::vector<size_t> sphere_ids_;

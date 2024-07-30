@@ -80,70 +80,83 @@ bool FusedSpheresCollisionChecker::is_valid(const std::vector<double>& q) {
   }
   return true;
 }
-
-/*
-double FusedSpheresCollisionChecker::evaluate(
-    const std::vector<double>& q) const {
+std::pair<Eigen::VectorXd, Eigen::MatrixXd>
+FusedSpheresCollisionChecker::evaluate(const std::vector<double>& q) const {
   kin_->set_joint_angles(control_joint_ids_, q);
   tinyfk::Transform pose;
+  Eigen::VectorXd grad_in_cspace_other(control_joint_ids_.size());
+  double min_val_other = std::numeric_limits<double>::max();
+  std::optional<size_t> min_sphere_idx = std::nullopt;
+  std::optional<size_t> min_sdf_idx = std::nullopt;
+  {
+    for (size_t i = 0; i < sphere_ids_.size(); i++) {
+      if (sphere_specs_[i].ignore_collision) {
+        continue;
+      }
+      kin_->get_link_pose(sphere_ids_[i], pose);
+      Eigen::Vector3d center(pose.position.x, pose.position.y, pose.position.z);
+      for (size_t j = 0; j < fixed_sdfs_.size(); j++) {
+        double val = fixed_sdfs_[j]->evaluate(center) - sphere_specs_[i].radius;
+        if (val < min_val_other) {
+          min_val_other = val;
+          min_sphere_idx = i;
+          min_sdf_idx = j;
+        }
+      }
+    }
 
-  double min_val = std::numeric_limits<double>::max();
-  std::optional<size_t> min_link_id = std::nullopt;
-  std::optional<size_t> min_sdf_id = std::nullopt;  // nullopt for fixed sdf
-  std::optional<bool> min_is_attached = std::nullopt;
-  std::shared_ptr<primitive_sdf::PrimitiveSDFBase::Ptr> min_sdf = nullptr;
-
-  for (size_t i = 0; i < sphere_ids_.size(); i++) {
-    // vs fixed sdf
-    kin_->get_link_pose(sphere_ids_[i], pose);
+    Eigen::Vector3d grad;
+    kin_->get_link_pose(sphere_ids_[*min_sphere_idx], pose);
     Eigen::Vector3d center(pose.position.x, pose.position.y, pose.position.z);
-    for(auto& sdf : fixed_sdfs_) {
-      double val = sdf->evaluate(center) - sphere_specs_[i].radius;
-      if(val < min_val) {
-        min_val = val;
-        min_link_id = sphere_ids_[i];
-        min_sdf_id = std::nullopt;
-        min_is_attached = false;
-        min_sdf = sdf;
+    for (size_t i = 0; i < 3; i++) {
+      Eigen::Vector3d perturbed_center = center;
+      perturbed_center[i] += 1e-6;
+      double val = fixed_sdfs_[*min_sdf_idx]->evaluate(perturbed_center) -
+                   sphere_specs_[*min_sphere_idx].radius;
+      grad[i] = (val - min_val_other) / 1e-6;
+    }
+    auto sphere_jac =
+        kin_->get_jacobian(sphere_ids_[*min_sphere_idx], control_joint_ids_);
+    grad_in_cspace_other = sphere_jac.transpose() * grad;
+  }
+
+  Eigen::VectorXd grad_in_cspace_self(control_joint_ids_.size());
+  double min_val_self = std::numeric_limits<double>::max();
+  {
+    std::optional<std::pair<size_t, size_t>> min_pair = std::nullopt;
+    for (const auto& pair : selcol_pairs_ids_) {
+      kin_->get_link_pose(sphere_ids_[pair.first], pose);
+      Eigen::Vector3d center1(pose.position.x, pose.position.y,
+                              pose.position.z);
+      kin_->get_link_pose(sphere_ids_[pair.second], pose);
+      Eigen::Vector3d center2(pose.position.x, pose.position.y,
+                              pose.position.z);
+      double val = (center1 - center2).norm() -
+                   sphere_specs_[pair.first].radius -
+                   sphere_specs_[pair.second].radius;
+      if (val < min_val_self) {
+        min_val_self = val;
+        min_pair = pair;
       }
     }
-    // vs attached sdf
-    for (size_t j = 0; j < sdf_ids_.size(); j++) {
-      kin_->get_link_pose(sdf_ids_[j], pose);
-      Eigen::Vector3d center_sdf(pose.position.x, pose.position.y,
-                                 pose.position.z);
-      sdf_specs_[j].sdf->tf_.set_position(center_sdf);  // TODO orientation
-      double val = sdf_specs_[j].sdf->evaluate(center, sphere_specs_[i].radius);
-      if(val < min_val) {
-        min_val = val;
-        min_link_id = sphere_ids_[i];
-        min_sdf_id = sdf_ids_[j];
-        min_is_attached = true;
-        min_sdf = sdf_specs_[j].sdf;
-      }
-    }
+    Eigen::Vector3d center1, center2;
+    kin_->get_link_pose(sphere_ids_[min_pair->first], pose);
+    center1 << pose.position.x, pose.position.y, pose.position.z;
+    kin_->get_link_pose(sphere_ids_[min_pair->second], pose);
+    center2 << pose.position.x, pose.position.y, pose.position.z;
+    Eigen::MatrixXd&& jac1 =
+        kin_->get_jacobian(sphere_ids_[min_pair->first], control_joint_ids_);
+    Eigen::MatrixXd&& jac2 =
+        kin_->get_jacobian(sphere_ids_[min_pair->second], control_joint_ids_);
   }
-  // compute jacobian
-  kin_->get_link_pose(min_link_id, pose);
-  Eigen::Vector3d sphere_pos;
-  sphere_pos << pose.position.x, pose.position.y, pose.position.z;
 
-  // compute gradient
-  if(min_is_attached.value()) {
-    // kin_->get_link_pose(min_link_id, pose);
-    // sphere_pos << pose.position.x, pose.position.y, pose.position.z;
-
-    // kin_->get_link_pose(min_sdf_id, pose);
-    // sdf_pos << pose.position.x, pose.position.y, pose.position.z;
-    // min_sdf->tf_.set_position(sdf_pos);
-    // auto jac_sdf = kin_->get_jacobian(min_sdf_id, control_joint_ids_);
-
-    // grad = (jac_sphere - jac_sdf) * (sphere_pos - sdf_pos)
-  } else {
-
-  }
+  Eigen::Vector2d vals(min_val_other * min_val_other,
+                       min_val_self * min_val_self);
+  Eigen::MatrixXd jac(2, grad_in_cspace_other.size());
+  jac.row(0) = grad_in_cspace_other;
+  jac.row(1) = grad_in_cspace_self;
+  return {vals, jac};
 }
-*/
 
 void bind_collision_constraints(py::module& m) {
   py::class_<SphereAttachentSpec>(m, "SphereAttachentSpec")
@@ -155,7 +168,8 @@ void bind_collision_constraints(py::module& m) {
                     const std::vector<SphereAttachentSpec>&,
                     const std::vector<std::pair<std::string, std::string>>&,
                     const std::vector<primitive_sdf::PrimitiveSDFBase::Ptr>&>())
-      .def("is_valid", &FusedSpheresCollisionChecker::is_valid);
+      .def("is_valid", &FusedSpheresCollisionChecker::is_valid)
+      .def("evaluate", &FusedSpheresCollisionChecker::evaluate);
 }
 
 }  // namespace cst
