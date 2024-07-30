@@ -2,10 +2,42 @@
 #include <pybind11/stl.h>
 #include <optional>
 #include "primitive_sdf.hpp"
+#include "tinyfk.hpp"
 
 namespace cst {
 
 namespace py = pybind11;
+
+std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate(
+    const std::vector<double>& q) const {
+  kin_->set_joint_angles(control_joint_ids_, q);
+  Eigen::VectorXd vals(cst_dim());
+  Eigen::MatrixXd jac(cst_dim(), control_joint_ids_.size());
+  tinyfk::Transform pose;
+  size_t head = 0;
+  for (size_t i = 0; i < link_ids_.size(); i++) {
+    kin_->get_link_pose(link_ids_[i], pose);
+    if (poses_[i].size() == 3) {
+      vals.segment(head, 3) =
+          Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z) -
+          poses_[i];
+      jac.block(head, 0, 3, control_joint_ids_.size()) = kin_->get_jacobian(
+          link_ids_[i], control_joint_ids_, tinyfk::RotationType::IGNORE);
+      head += 3;
+    } else {
+      vals.segment(head, 3) =
+          Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z) -
+          poses_[i];
+      auto rpy = pose.rotation.getRPY();
+      vals.segment(head + 3, 3) =
+          Eigen::Vector3d(rpy.x, rpy.y, rpy.z) - poses_[i].segment(3, 3);
+      jac.block(head, 0, 3, control_joint_ids_.size()) = kin_->get_jacobian(
+          link_ids_[i], control_joint_ids_, tinyfk::RotationType::RPY);
+      head += 6;
+    }
+  }
+  return {vals, jac};
+}
 
 SphereCollisionCst::SphereCollisionCst(
     const std::string& urdf_string,
@@ -178,6 +210,11 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
 
 void bind_collision_constraints(py::module& m) {
   auto cst_m = m.def_submodule("constraint");
+  py::class_<LinkPoseCst>(cst_m, "LinkPoseCst")
+      .def(py::init<const std::string&, const std::vector<std::string>&,
+                    const std::vector<Eigen::VectorXd>&>())
+      .def("evaluate", &LinkPoseCst::evaluate)
+      .def("cst_dim", &LinkPoseCst::cst_dim);
   py::class_<SphereAttachentSpec>(cst_m, "SphereAttachentSpec")
       .def(
           py::init<const std::string&, const Eigen::Vector3d&, double, bool>());
