@@ -64,6 +64,11 @@ bool FusedSpheresCollisionChecker::is_valid(const std::vector<double>& q) {
         return false;
       }
     }
+    for (auto& sdf : sdfs_) {
+      if (!sdf->is_outside(center, sphere_specs_[i].radius)) {
+        return false;
+      }
+    }
   }
   tinyfk::Transform pose1, pose2;
   for (const auto& pair : selcol_pairs_ids_) {
@@ -83,6 +88,8 @@ bool FusedSpheresCollisionChecker::is_valid(const std::vector<double>& q) {
 std::pair<Eigen::VectorXd, Eigen::MatrixXd>
 FusedSpheresCollisionChecker::evaluate(const std::vector<double>& q) const {
   kin_->set_joint_angles(control_joint_ids_, q);
+
+  // collision vs outers
   tinyfk::Transform pose;
   Eigen::VectorXd grad_in_cspace_other(control_joint_ids_.size());
   double min_val_other = std::numeric_limits<double>::max();
@@ -97,6 +104,14 @@ FusedSpheresCollisionChecker::evaluate(const std::vector<double>& q) const {
       Eigen::Vector3d center(pose.position.x, pose.position.y, pose.position.z);
       for (size_t j = 0; j < fixed_sdfs_.size(); j++) {
         double val = fixed_sdfs_[j]->evaluate(center) - sphere_specs_[i].radius;
+        if (val < min_val_other) {
+          min_val_other = val;
+          min_sphere_idx = i;
+          min_sdf_idx = j;
+        }
+      }
+      for (size_t j = 0; j < sdfs_.size(); j++) {
+        double val = sdfs_[j]->evaluate(center) - sphere_specs_[i].radius;
         if (val < min_val_other) {
           min_val_other = val;
           min_sphere_idx = i;
@@ -120,6 +135,7 @@ FusedSpheresCollisionChecker::evaluate(const std::vector<double>& q) const {
     grad_in_cspace_other = sphere_jac.transpose() * grad;
   }
 
+  // collision vs inners (self collision)
   Eigen::VectorXd grad_in_cspace_self(control_joint_ids_.size());
   double min_val_self = std::numeric_limits<double>::max();
   {
@@ -159,11 +175,13 @@ FusedSpheresCollisionChecker::evaluate(const std::vector<double>& q) const {
 }
 
 void bind_collision_constraints(py::module& m) {
-  py::class_<SphereAttachentSpec>(m, "SphereAttachentSpec")
+  auto cst_m = m.def_submodule("constraint");
+  py::class_<SphereAttachentSpec>(cst_m, "SphereAttachentSpec")
       .def(
           py::init<const std::string&, const Eigen::Vector3d&, double, bool>());
 
-  py::class_<FusedSpheresCollisionChecker>(m, "FusedSpheresCollisionChecker")
+  py::class_<FusedSpheresCollisionChecker>(cst_m,
+                                           "FusedSpheresCollisionChecker")
       .def(py::init<const std::string&, const std::vector<std::string>&,
                     const std::vector<SphereAttachentSpec>&,
                     const std::vector<std::pair<std::string, std::string>>&,

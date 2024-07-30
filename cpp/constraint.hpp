@@ -28,6 +28,10 @@ class FusedSpheresCollisionChecker {
       const std::vector<std::pair<std::string, std::string>>& selcol_pairs,
       const std::vector<PrimitiveSDFBase::Ptr>& fixed_sdfs);
 
+  void set_sdfs(const std::vector<PrimitiveSDFBase::Ptr>& sdfs) {
+    sdfs_ = sdfs;
+  }
+
   bool is_valid(const std::vector<double>& q);
   std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
       const std::vector<double>& q) const;
@@ -38,7 +42,8 @@ class FusedSpheresCollisionChecker {
   std::vector<size_t> control_joint_ids_;
   std::vector<SphereAttachentSpec> sphere_specs_;
   std::vector<std::pair<size_t, size_t>> selcol_pairs_ids_;
-  std::vector<PrimitiveSDFBase::Ptr> fixed_sdfs_;
+  std::vector<PrimitiveSDFBase::Ptr> fixed_sdfs_;  // fixed after construction
+  std::vector<PrimitiveSDFBase::Ptr> sdfs_;        // set later by user
 };
 
 void bind_collision_constraints(py::module& m);
