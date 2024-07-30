@@ -1,10 +1,10 @@
-#include "primitive_sdf.hpp"
-#include <tinyfk.hpp>
-#include <memory>
+#include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <pybind11/pybind11.h>
-#include <pybind11/eigen.h>
+#include <memory>
+#include <tinyfk.hpp>
+#include "primitive_sdf.hpp"
 
 namespace cst {
 
@@ -24,26 +24,26 @@ struct SDFAttachmentSpec {
 };
 
 class FusedSpheresCollisionChecker {
-  public:
-    FusedSpheresCollisionChecker(
-        const std::string& urdf_string,
-        const std::vector<std::string>& control_joint_names,
-        const std::vector<SphereAttachentSpec>& sphere_specs,
-        const std::vector<SDFAttachmentSpec>& sdf_specs,
-        primitive_sdf::SDFBase::Ptr sdf_fixed
-        ); 
+ public:
+  FusedSpheresCollisionChecker(
+      const std::string& urdf_string,
+      const std::vector<std::string>& control_joint_names,
+      const std::vector<SphereAttachentSpec>& sphere_specs,
+      const std::vector<SDFAttachmentSpec>& sdf_specs,
+      primitive_sdf::SDFBase::Ptr sdf_fixed);
   bool is_valid(const std::vector<double>& q);
+  double evaluate(const std::vector<double>& q) const;
 
-  private:
-    std::vector<size_t> sphere_ids_;
-    std::vector<size_t> sdf_ids_;
-    std::shared_ptr<tinyfk::KinematicModel> kin_;
-    std::vector<size_t> control_joint_ids_;
-    std::vector<SphereAttachentSpec> sphere_specs_;
-    std::vector<SDFAttachmentSpec> sdf_specs_;
-    primitive_sdf::SDFBase::Ptr sdf_fixed_;
+ private:
+  std::vector<size_t> sphere_ids_;
+  std::vector<size_t> sdf_ids_;
+  std::shared_ptr<tinyfk::KinematicModel> kin_;
+  std::vector<size_t> control_joint_ids_;
+  std::vector<SphereAttachentSpec> sphere_specs_;
+  std::vector<SDFAttachmentSpec> sdf_specs_;
+  primitive_sdf::SDFBase::Ptr sdf_fixed_;
 };
 
-void bind_collision_constraints(py::module &m);
+void bind_collision_constraints(py::module& m);
 
-};
+};  // namespace cst
