@@ -1,4 +1,4 @@
-#include "psdf.hpp"
+#include "primitive_sdf.hpp"
 #include <pybind11/detail/common.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>

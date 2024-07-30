@@ -1,6 +1,6 @@
 #include <pybind11/pybind11.h>
 #include "constraint.hpp"
-#include "psdf.hpp"
+#include "third/primitive_sdf_binding.hpp"
 #include "third/tinyfk_binding.hpp"
 namespace py = pybind11;
 
