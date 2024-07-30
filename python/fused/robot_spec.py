@@ -5,7 +5,8 @@ from typing import Dict, List, Sequence, Union
 
 import numpy as np
 import yaml
-from fused.constraint import SphereAttachentSpec, SphereCollisionCst
+from fused.constraint import LinkPoseCst, SphereAttachentSpec, SphereCollisionCst
+from fused.tinyfk import KinematicModel
 from fused.utils import sksdf_to_cppsdf
 from skrobot.model.primitives import Box, Cylinder, Sphere
 from skrobot.model.robot_model import RobotModel
@@ -67,6 +68,13 @@ class RobotSpec(ABC):
         )
         return cst
 
+    def create_pose_const(self, link_names: List[str], link_poses: List[np.ndarray]) -> LinkPoseCst:
+        # read urdf file to str
+        with open(self.urdf_path, "r") as f:
+            urdf_str = f.read()
+        kin = KinematicModel(urdf_str)
+        return LinkPoseCst(kin, self.control_joint_names, link_names, link_poses)
+
 
 class FetchSpec(RobotSpec):
     def __init__(self):
@@ -93,3 +101,6 @@ class FetchSpec(RobotSpec):
         head.translate([0.0, 0.0, 1.04])
         self_body_obstacles = [base, torso, torso_left, torso_right]
         return self_body_obstacles
+
+    def create_gripper_pose_const(self, link_pose: np.ndarray) -> LinkPoseCst:
+        return self.create_pose_const(["wrist_roll_link"], [link_pose])

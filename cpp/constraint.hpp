@@ -35,6 +35,7 @@ class LinkPoseCst {
     for (auto& pose : poses_) {
       dim += pose.size();
     }
+    return dim;
   }
 
  private:

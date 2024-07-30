@@ -27,12 +27,27 @@ def check_jacobian(const, dim: int, eps: float = 1e-7, decimal: int = 4, std: fl
         np.testing.assert_almost_equal(jac_anal, jac_numel, decimal=decimal)
 
 
-def test_collision_free_constraint():
+def test_link_pose_constraint():
     fs = FetchSpec()
-    fs.robot_model
-    cst = fs.create_collision_const()
+    cst = fs.create_gripper_pose_const(np.array([0.7, 0.0, 0.7]))
+    print("created")
     for _ in range(10):
         q = np.random.randn(8)
         _, jac = cst.evaluate(q)
         jac_numel = jac_numerical(cst, q, 1e-6)
         np.testing.assert_almost_equal(jac, jac_numel, decimal=4)
+
+
+def test_collision_free_constraint():
+    fs = FetchSpec()
+    cst = fs.create_collision_const()
+    for _ in range(10):
+        print("Hoge")
+        q = np.random.randn(8)
+        _, jac = cst.evaluate(q)
+        jac_numel = jac_numerical(cst, q, 1e-6)
+        np.testing.assert_almost_equal(jac, jac_numel, decimal=4)
+
+
+if __name__ == "__main__":
+    test_link_pose_constraint()

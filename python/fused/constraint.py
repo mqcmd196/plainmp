@@ -1,1 +1,5 @@
-from ._fused.constraint import SphereAttachentSpec, SphereCollisionCst  # noqa
+from ._fused.constraint import (  # noqa
+    LinkPoseCst,
+    SphereAttachentSpec,
+    SphereCollisionCst,
+)
