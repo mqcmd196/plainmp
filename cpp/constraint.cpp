@@ -164,10 +164,12 @@ FusedSpheresCollisionChecker::evaluate(const std::vector<double>& q) const {
         kin_->get_jacobian(sphere_ids_[min_pair->first], control_joint_ids_);
     Eigen::MatrixXd&& jac2 =
         kin_->get_jacobian(sphere_ids_[min_pair->second], control_joint_ids_);
+    double norminv = 1.0 / (center1 - center2).norm();
+    grad_in_cspace_self =
+        norminv * (center1 - center2).transpose() * (jac1 - jac2);
   }
 
-  Eigen::Vector2d vals(min_val_other * min_val_other,
-                       min_val_self * min_val_self);
+  Eigen::Vector2d vals(min_val_other, min_val_self);
   Eigen::MatrixXd jac(2, grad_in_cspace_other.size());
   jac.row(0) = grad_in_cspace_other;
   jac.row(1) = grad_in_cspace_self;
