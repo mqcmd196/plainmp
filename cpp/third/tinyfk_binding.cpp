@@ -5,7 +5,7 @@ namespace tinyfk {
 
 namespace py = pybind11;
 
-void bind_primitive_sdf(py::module& m) {
+void bind_tinyfk(py::module& m) {
 
   auto m_psdf = m.def_submodule("tinyfk");
   py::class_<tinyfk::KinematicModel>(m, "KinematicModel" )

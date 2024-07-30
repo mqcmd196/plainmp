@@ -15,7 +15,7 @@ include_directories("primitive_sdf")
 # add_executable(main main.cpp)
 # target_link_libraries(main tinyfk)
 
-file(GLOB SRC_FILES "./cpp/*.cpp")
+file(GLOB_RECURSE SRC_FILES cpp/*.cpp)
 add_subdirectory(pybind11)
 pybind11_add_module(_fused ${SRC_FILES})
 target_link_libraries(_fused PRIVATE tinyfk)
