@@ -1,12 +1,12 @@
-#include "primitive_sdf.hpp"
+#include "psdf.hpp"
 #include <pybind11/detail/common.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-namespace py = pybind11;
-using namespace primitive_sdf;
+namespace primitive_sdf {
 
+namespace py = pybind11;
 
 void bind_primitive_sdf(py::module &m) {
   auto m_psdf = m.def_submodule("primitive_sdf");
@@ -35,4 +35,5 @@ void bind_primitive_sdf(py::module &m) {
       .def(py::init<double, const Pose&>())
       .def("evaluate_batch", &SphereSDF::evaluate_batch)
       .def("evaluate", &SphereSDF::evaluate);
+}
 }
