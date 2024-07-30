@@ -1,7 +1,7 @@
 import copy
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, List, Sequence, Union
+from typing import Dict, List, Sequence, Tuple, Union
 
 import numpy as np
 import yaml
@@ -48,6 +48,10 @@ class RobotSpec(ABC):
 
     @abstractmethod
     def self_body_collision_primitives(self) -> Sequence[Union[Box, Sphere, Cylinder]]:
+        pass
+
+    @abstractmethod
+    def angle_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
     def create_collision_const(self) -> SphereCollisionCst:
@@ -104,3 +108,13 @@ class FetchSpec(RobotSpec):
 
     def create_gripper_pose_const(self, link_pose: np.ndarray) -> LinkPoseCst:
         return self.create_pose_const(["wrist_roll_link"], [link_pose])
+
+    def angle_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
+        # it takes time to parse the urdf file so we do it here...
+        min_angles = np.array(
+            [0.0, -1.6056, -1.221, -np.pi * 2, -2.251, -np.pi * 2, -2.16, -np.pi * 2]
+        )
+        max_angles = np.array(
+            [0.38615, 1.6056, 1.518, np.pi * 2, 2.251, np.pi * 2, 2.16, np.pi * 2]
+        )
+        return min_angles, max_angles

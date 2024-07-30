@@ -1,9 +1,12 @@
-from typing import Tuple
+from typing import Sequence, Tuple
 
 import numpy as np
+from fused.psdf import PrimitiveSDFBase
 
 class LinkPoseCst:
     def evaluate(self, q: np.ndarray) -> Tuple[np.ndarray, np.ndarray]: ...
 
 class SphereCollisionCst:
     def evaluate(self, q: np.ndarray) -> Tuple[np.ndarray, np.ndarray]: ...
+    def is_valid(self, q: np.ndarray) -> bool: ...
+    def set_sdfs(self, sdfs: Sequence[PrimitiveSDFBase]) -> None: ...
