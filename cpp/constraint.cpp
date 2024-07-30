@@ -211,7 +211,9 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
 void bind_collision_constraints(py::module& m) {
   auto cst_m = m.def_submodule("constraint");
   py::class_<LinkPoseCst>(cst_m, "LinkPoseCst")
-      .def(py::init<const std::string&, const std::vector<std::string>&,
+      .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
+                    const std::vector<std::string>&,
+                    const std::vector<std::string>&,
                     const std::vector<Eigen::VectorXd>&>())
       .def("evaluate", &LinkPoseCst::evaluate)
       .def("cst_dim", &LinkPoseCst::cst_dim);
