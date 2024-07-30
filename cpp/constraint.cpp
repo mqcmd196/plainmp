@@ -35,10 +35,10 @@ FusedSpheresCollisionChecker::FusedSpheresCollisionChecker(
     std::vector<size_t> second_ids;
     for (size_t i = 0; i < parent_link_names.size(); i++) {
       if (parent_link_names[i] == pair.first) {
-        first_ids.push_back(sphere_ids_[i]);
+        first_ids.push_back(i);
       }
       if (parent_link_names[i] == pair.second) {
-        second_ids.push_back(sphere_ids_[i]);
+        second_ids.push_back(i);
       }
     }
     for (auto& first_id : first_ids) {
@@ -52,7 +52,6 @@ FusedSpheresCollisionChecker::FusedSpheresCollisionChecker(
 
 bool FusedSpheresCollisionChecker::is_valid(const std::vector<double>& q) {
   kin_->set_joint_angles(control_joint_ids_, q);
-
   tinyfk::Transform pose;
   for (size_t i = 0; i < sphere_ids_.size(); i++) {
     if (sphere_specs_[i].ignore_collision) {
@@ -68,8 +67,8 @@ bool FusedSpheresCollisionChecker::is_valid(const std::vector<double>& q) {
   }
   tinyfk::Transform pose1, pose2;
   for (const auto& pair : selcol_pairs_ids_) {
-    kin_->get_link_pose(pair.first, pose1);
-    kin_->get_link_pose(pair.second, pose2);
+    kin_->get_link_pose(sphere_ids_[pair.first], pose1);
+    kin_->get_link_pose(sphere_ids_[pair.second], pose2);
     Eigen::Vector3d center1(pose1.position.x, pose1.position.y,
                             pose1.position.z);
     Eigen::Vector3d center2(pose2.position.x, pose2.position.y,

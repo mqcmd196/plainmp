@@ -47,7 +47,8 @@ def load_collision_spheres(yaml_file_path: Path) -> List[SphereAttachentSpec]:
             vals = np.array(spec)
             center, r = vals[:3], vals[3]
             specs.append(SphereAttachentSpec(link_name, center, r, ignore_collision))
-    return specs
+
+    return specs, collision_config["self_collision_pairs"]
 
 urdf_model_path = tinyfk.fetch_urdfpath()
 joint_names = [
@@ -70,14 +71,14 @@ ground = Box([2.0, 2.0, 0.05], with_sdf=True)
 obstacles = [table] + obstacles + [ground]
 sdfs = [_sksdf_to_cppsdf(o.sdf) for o in obstacles]
 
-specs = load_collision_spheres(Path("./fetch_coll_spheres.yaml"))
+specs, pairs = load_collision_spheres(Path("./fetch_coll_spheres.yaml"))
 
-kin = FusedSpheresCollisionChecker(urdf_model_path, joint_names, specs, [], sdfs)
+kin = FusedSpheresCollisionChecker(urdf_model_path, joint_names, specs, pairs, sdfs)
 start = np.array([ 0.,          1.31999949,  1.40000015, -0.20000077,  1.71999929,  0., 1.6600001,   0.        ])
 goal = np.array([ 0.386,     0.20565826,  1.41370123,  0.30791941, -1.82230466,  0.24521043, 0.41718824,  6.01064401])
+from ompl import Algorithm, Planner
 
 # solve rrt
-from ompl import Algorithm, Planner
 min_angles = np.array([0.0, -1.6056, -1.221, -np.pi * 2, -2.251, -np.pi * 2, -2.16, -np.pi * 2])
 max_angles = np.array([0.38615, 1.6056, 1.518, np.pi * 2, 2.251, np.pi * 2, 2.16, np.pi * 2])
 planner = Planner(min_angles, max_angles, lambda q: kin.is_valid(q), 10000, 0.1)
@@ -113,6 +114,7 @@ time.sleep(1.0)
 for q in ret:
     set_robot_state(fetch, conf.get_control_joint_names(), q)
     colvis.update(fetch)
+    v.redraw()
     time.sleep(1.0)
 
 import time; time.sleep(1000)
