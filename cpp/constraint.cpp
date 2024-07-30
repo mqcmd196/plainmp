@@ -148,7 +148,8 @@ double FusedSpheresCollisionChecker::evaluate(
 
 void bind_collision_constraints(py::module& m) {
   py::class_<SphereAttachentSpec>(m, "SphereAttachentSpec")
-      .def(py::init<const std::string&, const Eigen::Vector3d&, double>());
+      .def(
+          py::init<const std::string&, const Eigen::Vector3d&, double, bool>());
 
   py::class_<FusedSpheresCollisionChecker>(m, "FusedSpheresCollisionChecker")
       .def(py::init<const std::string&, const std::vector<std::string>&,
