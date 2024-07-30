@@ -5,7 +5,7 @@ from typing import Dict, List, Sequence, Union
 
 import numpy as np
 import yaml
-from fused.constraint import FusedSpheresCollisionChecker, SphereAttachentSpec
+from fused.constraint import SphereAttachentSpec, SphereCollisionCst
 from fused.utils import sksdf_to_cppsdf
 from skrobot.model.primitives import Box, Cylinder, Sphere
 from skrobot.model.robot_model import RobotModel
@@ -49,7 +49,7 @@ class RobotSpec(ABC):
     def self_body_collision_primitives(self) -> Sequence[Union[Box, Sphere, Cylinder]]:
         pass
 
-    def create_collision_const(self) -> FusedSpheresCollisionChecker:
+    def create_collision_const(self) -> SphereCollisionCst:
         d = self.conf_dict["collision_spheres"]
 
         sphere_specs = []
@@ -62,7 +62,7 @@ class RobotSpec(ABC):
                 sphere_specs.append(SphereAttachentSpec(link_name, center, r, ignore_collision))
         self_collision_pairs = self.conf_dict["self_collision_pairs"]
         sdfs = [sksdf_to_cppsdf(sk.sdf) for sk in self.self_body_collision_primitives()]
-        cst = FusedSpheresCollisionChecker(
+        cst = SphereCollisionCst(
             str(self.urdf_path), self.control_joint_names, sphere_specs, self_collision_pairs, sdfs
         )
         return cst

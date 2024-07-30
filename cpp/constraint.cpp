@@ -7,7 +7,7 @@ namespace cst {
 
 namespace py = pybind11;
 
-FusedSpheresCollisionChecker::FusedSpheresCollisionChecker(
+SphereCollisionCst::SphereCollisionCst(
     const std::string& urdf_string,
     const std::vector<std::string>& control_joint_names,
     const std::vector<SphereAttachentSpec>& sphere_specs,
@@ -50,7 +50,7 @@ FusedSpheresCollisionChecker::FusedSpheresCollisionChecker(
   selcol_pairs_ids_ = selcol_pairs_ids;
 }
 
-bool FusedSpheresCollisionChecker::is_valid(const std::vector<double>& q) {
+bool SphereCollisionCst::is_valid(const std::vector<double>& q) {
   kin_->set_joint_angles(control_joint_ids_, q);
   tinyfk::Transform pose;
   for (size_t i = 0; i < sphere_ids_.size(); i++) {
@@ -85,8 +85,8 @@ bool FusedSpheresCollisionChecker::is_valid(const std::vector<double>& q) {
   }
   return true;
 }
-std::pair<Eigen::VectorXd, Eigen::MatrixXd>
-FusedSpheresCollisionChecker::evaluate(const std::vector<double>& q) const {
+std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
+    const std::vector<double>& q) const {
   kin_->set_joint_angles(control_joint_ids_, q);
 
   // collision vs outers
@@ -182,14 +182,13 @@ void bind_collision_constraints(py::module& m) {
       .def(
           py::init<const std::string&, const Eigen::Vector3d&, double, bool>());
 
-  py::class_<FusedSpheresCollisionChecker>(cst_m,
-                                           "FusedSpheresCollisionChecker")
+  py::class_<SphereCollisionCst>(cst_m, "SphereCollisionCst")
       .def(py::init<const std::string&, const std::vector<std::string>&,
                     const std::vector<SphereAttachentSpec>&,
                     const std::vector<std::pair<std::string, std::string>>&,
                     const std::vector<primitive_sdf::PrimitiveSDFBase::Ptr>&>())
-      .def("is_valid", &FusedSpheresCollisionChecker::is_valid)
-      .def("evaluate", &FusedSpheresCollisionChecker::evaluate);
+      .def("is_valid", &SphereCollisionCst::is_valid)
+      .def("evaluate", &SphereCollisionCst::evaluate);
 }
 
 }  // namespace cst

@@ -1,1 +1,1 @@
-from ._fused.constraint import FusedSpheresCollisionChecker, SphereAttachentSpec  # noqa
+from ._fused.constraint import SphereAttachentSpec, SphereCollisionCst  # noqa

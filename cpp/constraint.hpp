@@ -19,9 +19,9 @@ struct SphereAttachentSpec {
   bool ignore_collision;
 };
 
-class FusedSpheresCollisionChecker {
+class SphereCollisionCst {
  public:
-  FusedSpheresCollisionChecker(
+  SphereCollisionCst(
       const std::string& urdf_string,
       const std::vector<std::string>& control_joint_names,
       const std::vector<SphereAttachentSpec>& sphere_specs,
