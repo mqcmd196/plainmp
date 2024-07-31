@@ -1,6 +1,7 @@
 #include "constraint.hpp"
 #include <pybind11/stl.h>
 #include <optional>
+#include <stdexcept>
 #include "primitive_sdf.hpp"
 #include "tinyfk.hpp"
 
@@ -84,6 +85,7 @@ SphereCollisionCst::SphereCollisionCst(
 
 bool SphereCollisionCst::is_valid(const std::vector<double>& q) {
   kin_->set_joint_angles(control_joint_ids_, q);
+
   tinyfk::Transform pose;
   for (size_t i = 0; i < sphere_ids_.size(); i++) {
     if (sphere_specs_[i].ignore_collision) {
@@ -91,12 +93,7 @@ bool SphereCollisionCst::is_valid(const std::vector<double>& q) {
     }
     kin_->get_link_pose(sphere_ids_[i], pose);
     Eigen::Vector3d center(pose.position.x, pose.position.y, pose.position.z);
-    for (auto& sdf : fixed_sdfs_) {
-      if (!sdf->is_outside(center, sphere_specs_[i].radius)) {
-        return false;
-      }
-    }
-    for (auto& sdf : sdfs_) {
+    for (auto& sdf : get_all_sdfs()) {
       if (!sdf->is_outside(center, sphere_specs_[i].radius)) {
         return false;
       }
@@ -120,6 +117,7 @@ bool SphereCollisionCst::is_valid(const std::vector<double>& q) {
 std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
     const std::vector<double>& q) const {
   kin_->set_joint_angles(control_joint_ids_, q);
+  auto all_sdfs = get_all_sdfs();
 
   // collision vs outers
   tinyfk::Transform pose;
@@ -134,27 +132,14 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
       }
       kin_->get_link_pose(sphere_ids_[i], pose);
       Eigen::Vector3d center(pose.position.x, pose.position.y, pose.position.z);
-      for (size_t j = 0; j < fixed_sdfs_.size(); j++) {
-        double val = fixed_sdfs_[j]->evaluate(center) - sphere_specs_[i].radius;
+      for (size_t j = 0; j < all_sdfs.size(); j++) {
+        double val = all_sdfs[j]->evaluate(center) - sphere_specs_[i].radius;
         if (val < min_val_other) {
           min_val_other = val;
           min_sphere_idx = i;
           min_sdf_idx = j;
         }
       }
-      for (size_t j = 0; j < sdfs_.size(); j++) {
-        double val = sdfs_[j]->evaluate(center) - sphere_specs_[i].radius;
-        if (val < min_val_other) {
-          min_val_other = val;
-          min_sphere_idx = i;
-          min_sdf_idx = j;
-        }
-      }
-    }
-    if (min_sdf_idx == std::nullopt) {
-      throw std::runtime_error(
-          "(cpp) No sdf is set. Please call set_sdfs or set fixed sdfs in "
-          "constructor");
     }
 
     Eigen::Vector3d grad;
@@ -163,7 +148,7 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
     for (size_t i = 0; i < 3; i++) {
       Eigen::Vector3d perturbed_center = center;
       perturbed_center[i] += 1e-6;
-      double val = fixed_sdfs_[*min_sdf_idx]->evaluate(perturbed_center) -
+      double val = all_sdfs[*min_sdf_idx]->evaluate(perturbed_center) -
                    sphere_specs_[*min_sphere_idx].radius;
       grad[i] = (val - min_val_other) / 1e-6;
     }
@@ -173,7 +158,9 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
   }
 
   if (selcol_pairs_ids_.size() == 0) {
-    return {Eigen::VectorXd::Constant(1, min_val_other), grad_in_cspace_other};
+    Eigen::MatrixXd jac(1, grad_in_cspace_other.size());
+    jac.row(0) = grad_in_cspace_other;
+    return {Eigen::VectorXd::Constant(1, min_val_other), jac};
   } else {
     // collision vs inners (self collision)
     Eigen::VectorXd grad_in_cspace_self(control_joint_ids_.size());

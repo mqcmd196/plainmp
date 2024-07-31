@@ -98,6 +98,16 @@ class SphereCollisionCst : IneqConstraintBase {
   }
 
  private:
+  std::vector<PrimitiveSDFBase::Ptr> get_all_sdfs() const {
+    // TODO: Consider using std::views::concat (but it's C++20)
+    std::vector<PrimitiveSDFBase::Ptr> all_sdfs = fixed_sdfs_;
+    all_sdfs.insert(all_sdfs.end(), sdfs_.begin(), sdfs_.end());
+    if (all_sdfs.size() == 0) {
+      throw std::runtime_error("(cpp) No SDFs are set");
+    }
+    return all_sdfs;
+  }
+
   std::vector<size_t> sphere_ids_;
   std::shared_ptr<tinyfk::KinematicModel> kin_;
   std::vector<size_t> control_joint_ids_;
