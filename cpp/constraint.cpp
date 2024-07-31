@@ -41,13 +41,12 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate(
 }
 
 SphereCollisionCst::SphereCollisionCst(
-    const std::string& urdf_string,
+    std::shared_ptr<tinyfk::KinematicModel> kin,
     const std::vector<std::string>& control_joint_names,
     const std::vector<SphereAttachentSpec>& sphere_specs,
     const std::vector<std::pair<std::string, std::string>>& selcol_pairs,
     const std::vector<primitive_sdf::PrimitiveSDFBase::Ptr>& fixed_sdfs)
-    : kin_(std::make_shared<tinyfk::KinematicModel>(
-          tinyfk::load_urdf(urdf_string))),
+    : kin_(kin),
       control_joint_ids_(kin_->get_joint_ids(control_joint_names)),
       sphere_specs_(sphere_specs),
       fixed_sdfs_(fixed_sdfs) {
@@ -218,7 +217,8 @@ void bind_collision_constraints(py::module& m) {
           py::init<const std::string&, const Eigen::Vector3d&, double, bool>());
 
   py::class_<SphereCollisionCst>(cst_m, "SphereCollisionCst")
-      .def(py::init<const std::string&, const std::vector<std::string>&,
+      .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
+                    const std::vector<std::string>&,
                     const std::vector<SphereAttachentSpec>&,
                     const std::vector<std::pair<std::string, std::string>>&,
                     const std::vector<primitive_sdf::PrimitiveSDFBase::Ptr>&>())

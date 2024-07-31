@@ -71,8 +71,11 @@ class RobotSpec(ABC):
         else:
             self_collision_pairs = []
             sdfs = []
+        with open(self.urdf_path, "r") as f:
+            urdf_str = f.read()
+        kin = KinematicModel(urdf_str)
         cst = SphereCollisionCst(
-            str(self.urdf_path), self.control_joint_names, sphere_specs, self_collision_pairs, sdfs
+            kin, self.control_joint_names, sphere_specs, self_collision_pairs, sdfs
         )
         return cst
 

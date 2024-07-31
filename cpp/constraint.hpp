@@ -75,7 +75,7 @@ struct SphereAttachentSpec {
 class SphereCollisionCst : IneqConstraintBase {
  public:
   SphereCollisionCst(
-      const std::string& urdf_string,
+      std::shared_ptr<tinyfk::KinematicModel> kin,
       const std::vector<std::string>& control_joint_names,
       const std::vector<SphereAttachentSpec>& sphere_specs,
       const std::vector<std::pair<std::string, std::string>>& selcol_pairs,
