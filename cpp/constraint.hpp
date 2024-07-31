@@ -14,6 +14,7 @@ using namespace primitive_sdf;
 
 class ConstraintBase {
  public:
+  using Ptr = std::shared_ptr<ConstraintBase>;
   ConstraintBase(std::shared_ptr<tinyfk::KinematicModel> kin,
                  const std::vector<std::string>& control_joint_names)
       : kin_(kin),
@@ -35,12 +36,14 @@ class ConstraintBase {
 
 class EqConstraintBase : public ConstraintBase {
  public:
+  using Ptr = std::shared_ptr<EqConstraintBase>;
   using ConstraintBase::ConstraintBase;
   bool is_equality() const override { return true; }
 };
 
 class IneqConstraintBase : public ConstraintBase {
  public:
+  using Ptr = std::shared_ptr<IneqConstraintBase>;
   using ConstraintBase::ConstraintBase;
   virtual bool is_valid() = 0;
   bool is_equality() const override { return false; }
@@ -48,6 +51,7 @@ class IneqConstraintBase : public ConstraintBase {
 
 class LinkPoseCst : public EqConstraintBase {
  public:
+  using Ptr = std::shared_ptr<LinkPoseCst>;
   LinkPoseCst(std::shared_ptr<tinyfk::KinematicModel> kin,
               const std::vector<std::string>& control_joint_names,
               const std::vector<std::string>& link_names,
@@ -84,6 +88,7 @@ struct SphereAttachentSpec {
 
 class SphereCollisionCst : public IneqConstraintBase {
  public:
+  using Ptr = std::shared_ptr<SphereCollisionCst>;
   SphereCollisionCst(
       std::shared_ptr<tinyfk::KinematicModel> kin,
       const std::vector<std::string>& control_joint_names,

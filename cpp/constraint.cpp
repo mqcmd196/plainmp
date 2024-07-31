@@ -199,7 +199,13 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
 
 void bind_collision_constraints(py::module& m) {
   auto cst_m = m.def_submodule("constraint");
-  py::class_<LinkPoseCst>(cst_m, "LinkPoseCst")
+  py::class_<ConstraintBase, ConstraintBase::Ptr>(cst_m, "ConstraintBase");
+  py::class_<EqConstraintBase, EqConstraintBase::Ptr, ConstraintBase>(
+      cst_m, "EqConstraintBase");
+  py::class_<IneqConstraintBase, IneqConstraintBase::Ptr, ConstraintBase>(
+      cst_m, "IneqConstraintBase");
+  py::class_<LinkPoseCst, LinkPoseCst::Ptr, EqConstraintBase>(cst_m,
+                                                              "LinkPoseCst")
       .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
                     const std::vector<std::string>&,
                     const std::vector<std::string>&,
@@ -211,7 +217,8 @@ void bind_collision_constraints(py::module& m) {
       .def(
           py::init<const std::string&, const Eigen::Vector3d&, double, bool>());
 
-  py::class_<SphereCollisionCst>(cst_m, "SphereCollisionCst")
+  py::class_<SphereCollisionCst, SphereCollisionCst::Ptr, IneqConstraintBase>(
+      cst_m, "SphereCollisionCst")
       .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
                     const std::vector<std::string>&,
                     const std::vector<SphereAttachentSpec>&,
