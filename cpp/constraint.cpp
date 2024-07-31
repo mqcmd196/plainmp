@@ -30,7 +30,7 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate() const {
       auto rpy = pose.rotation.getRPY();
       vals.segment(head + 3, 3) =
           Eigen::Vector3d(rpy.x, rpy.y, rpy.z) - poses_[i].segment(3, 3);
-      jac.block(head, 0, 3, control_joint_ids_.size()) = kin_->get_jacobian(
+      jac.block(head, 0, 6, control_joint_ids_.size()) = kin_->get_jacobian(
           link_ids_[i], control_joint_ids_, tinyfk::RotationType::RPY);
       head += 6;
     }
