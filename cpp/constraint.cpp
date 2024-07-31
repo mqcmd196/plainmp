@@ -151,6 +151,11 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
         }
       }
     }
+    if (min_sdf_idx == std::nullopt) {
+      throw std::runtime_error(
+          "(cpp) No sdf is set. Please call set_sdfs or set fixed sdfs in "
+          "constructor");
+    }
 
     Eigen::Vector3d grad;
     kin_->get_link_pose(sphere_ids_[*min_sphere_idx], pose);
@@ -167,45 +172,49 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
     grad_in_cspace_other = sphere_jac.transpose() * grad;
   }
 
-  // collision vs inners (self collision)
-  Eigen::VectorXd grad_in_cspace_self(control_joint_ids_.size());
-  double min_val_self = std::numeric_limits<double>::max();
-  {
-    std::optional<std::pair<size_t, size_t>> min_pair = std::nullopt;
-    for (const auto& pair : selcol_pairs_ids_) {
-      kin_->get_link_pose(sphere_ids_[pair.first], pose);
-      Eigen::Vector3d center1(pose.position.x, pose.position.y,
-                              pose.position.z);
-      kin_->get_link_pose(sphere_ids_[pair.second], pose);
-      Eigen::Vector3d center2(pose.position.x, pose.position.y,
-                              pose.position.z);
-      double val = (center1 - center2).norm() -
-                   sphere_specs_[pair.first].radius -
-                   sphere_specs_[pair.second].radius;
-      if (val < min_val_self) {
-        min_val_self = val;
-        min_pair = pair;
+  if (selcol_pairs_ids_.size() == 0) {
+    return {Eigen::VectorXd::Constant(1, min_val_other), grad_in_cspace_other};
+  } else {
+    // collision vs inners (self collision)
+    Eigen::VectorXd grad_in_cspace_self(control_joint_ids_.size());
+    double min_val_self = std::numeric_limits<double>::max();
+    {
+      std::optional<std::pair<size_t, size_t>> min_pair = std::nullopt;
+      for (const auto& pair : selcol_pairs_ids_) {
+        kin_->get_link_pose(sphere_ids_[pair.first], pose);
+        Eigen::Vector3d center1(pose.position.x, pose.position.y,
+                                pose.position.z);
+        kin_->get_link_pose(sphere_ids_[pair.second], pose);
+        Eigen::Vector3d center2(pose.position.x, pose.position.y,
+                                pose.position.z);
+        double val = (center1 - center2).norm() -
+                     sphere_specs_[pair.first].radius -
+                     sphere_specs_[pair.second].radius;
+        if (val < min_val_self) {
+          min_val_self = val;
+          min_pair = pair;
+        }
       }
+      Eigen::Vector3d center1, center2;
+      kin_->get_link_pose(sphere_ids_[min_pair->first], pose);
+      center1 << pose.position.x, pose.position.y, pose.position.z;
+      kin_->get_link_pose(sphere_ids_[min_pair->second], pose);
+      center2 << pose.position.x, pose.position.y, pose.position.z;
+      Eigen::MatrixXd&& jac1 =
+          kin_->get_jacobian(sphere_ids_[min_pair->first], control_joint_ids_);
+      Eigen::MatrixXd&& jac2 =
+          kin_->get_jacobian(sphere_ids_[min_pair->second], control_joint_ids_);
+      double norminv = 1.0 / (center1 - center2).norm();
+      grad_in_cspace_self =
+          norminv * (center1 - center2).transpose() * (jac1 - jac2);
     }
-    Eigen::Vector3d center1, center2;
-    kin_->get_link_pose(sphere_ids_[min_pair->first], pose);
-    center1 << pose.position.x, pose.position.y, pose.position.z;
-    kin_->get_link_pose(sphere_ids_[min_pair->second], pose);
-    center2 << pose.position.x, pose.position.y, pose.position.z;
-    Eigen::MatrixXd&& jac1 =
-        kin_->get_jacobian(sphere_ids_[min_pair->first], control_joint_ids_);
-    Eigen::MatrixXd&& jac2 =
-        kin_->get_jacobian(sphere_ids_[min_pair->second], control_joint_ids_);
-    double norminv = 1.0 / (center1 - center2).norm();
-    grad_in_cspace_self =
-        norminv * (center1 - center2).transpose() * (jac1 - jac2);
-  }
 
-  Eigen::Vector2d vals(min_val_other, min_val_self);
-  Eigen::MatrixXd jac(2, grad_in_cspace_other.size());
-  jac.row(0) = grad_in_cspace_other;
-  jac.row(1) = grad_in_cspace_self;
-  return {vals, jac};
+    Eigen::Vector2d vals(min_val_other, min_val_self);
+    Eigen::MatrixXd jac(2, grad_in_cspace_other.size());
+    jac.row(0) = grad_in_cspace_other;
+    jac.row(1) = grad_in_cspace_self;
+    return {vals, jac};
+  }
 }
 
 void bind_collision_constraints(py::module& m) {

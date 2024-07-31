@@ -12,7 +12,27 @@ namespace cst {
 namespace py = pybind11;
 using namespace primitive_sdf;
 
-class LinkPoseCst {
+class ConstraintBase {
+ public:
+  virtual std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
+      const std::vector<double>& q) const = 0;
+  virtual size_t cst_dim() const = 0;
+  virtual bool is_equality() const = 0;
+  virtual ~ConstraintBase() = default;
+};
+
+class EqConstraintBase : public ConstraintBase {
+ public:
+  bool is_equality() const override { return true; }
+};
+
+class IneqConstraintBase : public ConstraintBase {
+ public:
+  virtual bool is_valid(const std::vector<double>& q) = 0;
+  bool is_equality() const override { return false; }
+};
+
+class LinkPoseCst : EqConstraintBase {
  public:
   LinkPoseCst(std::shared_ptr<tinyfk::KinematicModel> kin,
               const std::vector<std::string>& control_joint_names,
@@ -52,7 +72,7 @@ struct SphereAttachentSpec {
   bool ignore_collision;
 };
 
-class SphereCollisionCst {
+class SphereCollisionCst : IneqConstraintBase {
  public:
   SphereCollisionCst(
       const std::string& urdf_string,
@@ -68,6 +88,14 @@ class SphereCollisionCst {
   bool is_valid(const std::vector<double>& q);
   std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
       const std::vector<double>& q) const;
+
+  size_t cst_dim() const {
+    if (selcol_pairs_ids_.size() == 0) {
+      return 1;
+    } else {
+      return 2;
+    }
+  }
 
  private:
   std::vector<size_t> sphere_ids_;
