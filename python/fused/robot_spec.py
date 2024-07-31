@@ -54,7 +54,7 @@ class RobotSpec(ABC):
     def angle_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
-    def create_collision_const(self) -> SphereCollisionCst:
+    def create_collision_const(self, self_collision: bool = True) -> SphereCollisionCst:
         d = self.conf_dict["collision_spheres"]
 
         sphere_specs = []
@@ -65,8 +65,12 @@ class RobotSpec(ABC):
                 vals = np.array(spec)
                 center, r = vals[:3], vals[3]
                 sphere_specs.append(SphereAttachentSpec(link_name, center, r, ignore_collision))
-        self_collision_pairs = self.conf_dict["self_collision_pairs"]
-        sdfs = [sksdf_to_cppsdf(sk.sdf) for sk in self.self_body_collision_primitives()]
+        if self_collision:
+            self_collision_pairs = self.conf_dict["self_collision_pairs"]
+            sdfs = [sksdf_to_cppsdf(sk.sdf) for sk in self.self_body_collision_primitives()]
+        else:
+            self_collision_pairs = []
+            sdfs = []
         cst = SphereCollisionCst(
             str(self.urdf_path), self.control_joint_names, sphere_specs, self_collision_pairs, sdfs
         )
