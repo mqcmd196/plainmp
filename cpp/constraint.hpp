@@ -14,32 +14,45 @@ using namespace primitive_sdf;
 
 class ConstraintBase {
  public:
-  virtual std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
-      const std::vector<double>& q) const = 0;
+  ConstraintBase(std::shared_ptr<tinyfk::KinematicModel> kin,
+                 const std::vector<std::string>& control_joint_names)
+      : kin_(kin),
+        control_joint_ids_(kin->get_joint_ids(control_joint_names)) {}
+
+  void update_kintree(const std::vector<double>& q) {
+    kin_->set_joint_angles(control_joint_ids_, q);
+  }
+
+  virtual std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const = 0;
   virtual size_t cst_dim() const = 0;
   virtual bool is_equality() const = 0;
   virtual ~ConstraintBase() = default;
+
+ protected:
+  std::shared_ptr<tinyfk::KinematicModel> kin_;
+  std::vector<size_t> control_joint_ids_;
 };
 
 class EqConstraintBase : public ConstraintBase {
  public:
+  using ConstraintBase::ConstraintBase;
   bool is_equality() const override { return true; }
 };
 
 class IneqConstraintBase : public ConstraintBase {
  public:
-  virtual bool is_valid(const std::vector<double>& q) = 0;
+  using ConstraintBase::ConstraintBase;
+  virtual bool is_valid() = 0;
   bool is_equality() const override { return false; }
 };
 
-class LinkPoseCst : EqConstraintBase {
+class LinkPoseCst : public EqConstraintBase {
  public:
   LinkPoseCst(std::shared_ptr<tinyfk::KinematicModel> kin,
               const std::vector<std::string>& control_joint_names,
               const std::vector<std::string>& link_names,
               const std::vector<Eigen::VectorXd>& poses)
-      : kin_(kin),
-        control_joint_ids_(kin_->get_joint_ids(control_joint_names)),
+      : EqConstraintBase(kin, control_joint_names),
         link_ids_(kin_->get_link_ids(link_names)),
         poses_(poses) {
     for (auto& pose : poses_) {
@@ -48,8 +61,7 @@ class LinkPoseCst : EqConstraintBase {
       }
     }
   }
-  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
-      const std::vector<double>& q) const;
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const override;
   size_t cst_dim() const {
     size_t dim = 0;
     for (auto& pose : poses_) {
@@ -59,8 +71,6 @@ class LinkPoseCst : EqConstraintBase {
   }
 
  private:
-  std::shared_ptr<tinyfk::KinematicModel> kin_;
-  std::vector<size_t> control_joint_ids_;
   std::vector<size_t> link_ids_;
   std::vector<Eigen::VectorXd> poses_;
 };
@@ -72,7 +82,7 @@ struct SphereAttachentSpec {
   bool ignore_collision;
 };
 
-class SphereCollisionCst : IneqConstraintBase {
+class SphereCollisionCst : public IneqConstraintBase {
  public:
   SphereCollisionCst(
       std::shared_ptr<tinyfk::KinematicModel> kin,
@@ -85,9 +95,8 @@ class SphereCollisionCst : IneqConstraintBase {
     sdfs_ = sdfs;
   }
 
-  bool is_valid(const std::vector<double>& q);
-  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
-      const std::vector<double>& q) const;
+  bool is_valid();
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const override;
 
   size_t cst_dim() const {
     if (selcol_pairs_ids_.size() == 0) {
@@ -109,8 +118,6 @@ class SphereCollisionCst : IneqConstraintBase {
   }
 
   std::vector<size_t> sphere_ids_;
-  std::shared_ptr<tinyfk::KinematicModel> kin_;
-  std::vector<size_t> control_joint_ids_;
   std::vector<SphereAttachentSpec> sphere_specs_;
   std::vector<std::pair<size_t, size_t>> selcol_pairs_ids_;
   std::vector<PrimitiveSDFBase::Ptr> fixed_sdfs_;  // fixed after construction

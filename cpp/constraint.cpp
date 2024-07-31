@@ -9,9 +9,7 @@ namespace cst {
 
 namespace py = pybind11;
 
-std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate(
-    const std::vector<double>& q) const {
-  kin_->set_joint_angles(control_joint_ids_, q);
+std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate() const {
   Eigen::VectorXd vals(cst_dim());
   Eigen::MatrixXd jac(cst_dim(), control_joint_ids_.size());
   tinyfk::Transform pose;
@@ -46,8 +44,7 @@ SphereCollisionCst::SphereCollisionCst(
     const std::vector<SphereAttachentSpec>& sphere_specs,
     const std::vector<std::pair<std::string, std::string>>& selcol_pairs,
     const std::vector<primitive_sdf::PrimitiveSDFBase::Ptr>& fixed_sdfs)
-    : kin_(kin),
-      control_joint_ids_(kin_->get_joint_ids(control_joint_names)),
+    : IneqConstraintBase(kin, control_joint_names),
       sphere_specs_(sphere_specs),
       fixed_sdfs_(fixed_sdfs) {
   std::vector<std::string> parent_link_names;
@@ -82,9 +79,7 @@ SphereCollisionCst::SphereCollisionCst(
   selcol_pairs_ids_ = selcol_pairs_ids;
 }
 
-bool SphereCollisionCst::is_valid(const std::vector<double>& q) {
-  kin_->set_joint_angles(control_joint_ids_, q);
-
+bool SphereCollisionCst::is_valid() {
   tinyfk::Transform pose;
   for (size_t i = 0; i < sphere_ids_.size(); i++) {
     if (sphere_specs_[i].ignore_collision) {
@@ -113,9 +108,8 @@ bool SphereCollisionCst::is_valid(const std::vector<double>& q) {
   }
   return true;
 }
-std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate(
-    const std::vector<double>& q) const {
-  kin_->set_joint_angles(control_joint_ids_, q);
+std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
+    const {
   auto all_sdfs = get_all_sdfs();
 
   // collision vs outers
@@ -210,6 +204,7 @@ void bind_collision_constraints(py::module& m) {
                     const std::vector<std::string>&,
                     const std::vector<std::string>&,
                     const std::vector<Eigen::VectorXd>&>())
+      .def("update_kintree", &LinkPoseCst::update_kintree)
       .def("evaluate", &LinkPoseCst::evaluate)
       .def("cst_dim", &LinkPoseCst::cst_dim);
   py::class_<SphereAttachentSpec>(cst_m, "SphereAttachentSpec")
@@ -223,6 +218,7 @@ void bind_collision_constraints(py::module& m) {
                     const std::vector<std::pair<std::string, std::string>>&,
                     const std::vector<primitive_sdf::PrimitiveSDFBase::Ptr>&>())
       .def("set_sdfs", &SphereCollisionCst::set_sdfs)
+      .def("update_kintree", &SphereCollisionCst::update_kintree)
       .def("is_valid", &SphereCollisionCst::is_valid)
       .def("evaluate", &SphereCollisionCst::evaluate);
 }

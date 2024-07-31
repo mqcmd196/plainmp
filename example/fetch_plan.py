@@ -22,10 +22,17 @@ cst.set_sdfs(sdfs)
 
 min_angles = np.array([0.0, -1.6056, -1.221, -np.pi * 2, -2.251, -np.pi * 2, -2.16, -np.pi * 2])
 max_angles = np.array([0.38615, 1.6056, 1.518, np.pi * 2, 2.251, np.pi * 2, 2.16, np.pi * 2])
+
+
+def is_valid(q):
+    cst.update_kintree(q)
+    return cst.is_valid()
+
+
 planner = Planner(
     min_angles,
     max_angles,
-    lambda q: cst.is_valid(q),
+    is_valid,
     10000,
     [0.05, 0.05, 0.05, 0.1, 0.1, 0.1, 0.2, 0.2],
 )
@@ -58,7 +65,5 @@ for q in ret:
     colvis.update(fetch)
     v.redraw()
     time.sleep(0.3)
-
-import time
 
 time.sleep(1000)
