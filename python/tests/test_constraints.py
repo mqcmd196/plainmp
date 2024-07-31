@@ -35,23 +35,13 @@ def test_link_pose_constraint():
     fs = FetchSpec()
     # only gripper
     cst = fs.create_gripper_pose_const(np.array([0.7, 0.0, 0.7]))
-    for _ in range(10):
-        q = np.random.randn(8)
-        cst.update_kintree(q)
-        _, jac = cst.evaluate()
-        jac_numel = jac_numerical(cst, q, 1e-6)
-        np.testing.assert_almost_equal(jac, jac_numel, decimal=4)
+    check_jacobian(cst, 8)
 
     # consider multiple links
     cst = fs.create_pose_const(
         ["gripper_link", "wrist_roll_link"], [np.array([0.7, 0.0, 0.7]), np.array([0.7, 0.0, 0.7])]
     )
-    for _ in range(10):
-        q = np.random.randn(8)
-        cst.update_kintree(q)
-        _, jac = cst.evaluate()
-        jac_numel = jac_numerical(cst, q, 1e-6)
-        np.testing.assert_almost_equal(jac, jac_numel, decimal=4)
+    check_jacobian(cst, 8)
 
 
 def test_collision_free_constraint():
@@ -60,12 +50,7 @@ def test_collision_free_constraint():
     for self_collision in [False, True]:
         cst = fs.create_collision_const(self_collision)
         cst.set_sdfs([sdf])
-        for _ in range(10):
-            q = np.random.randn(8)
-            cst.update_kintree(q)
-            _, jac = cst.evaluate()
-            jac_numel = jac_numerical(cst, q, 1e-6)
-            np.testing.assert_almost_equal(jac, jac_numel, decimal=4)
+        check_jacobian(cst, 8)
 
 
 if __name__ == "__main__":
