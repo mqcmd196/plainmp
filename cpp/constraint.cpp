@@ -79,7 +79,7 @@ SphereCollisionCst::SphereCollisionCst(
   selcol_pairs_ids_ = selcol_pairs_ids;
 }
 
-bool SphereCollisionCst::is_valid() {
+bool SphereCollisionCst::is_valid() const {
   tinyfk::Transform pose;
   for (size_t i = 0; i < sphere_ids_.size(); i++) {
     if (sphere_specs_[i].ignore_collision) {
@@ -197,6 +197,35 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
   }
 }
 
+bool ComInPolytopeCst::is_valid() const {
+  auto com_tmp = kin_->get_com();
+  Eigen::Vector3d com(com_tmp.x, com_tmp.y, com_tmp.z);
+  return polytope_sdf_->evaluate(com) < 0;
+}
+
+std::pair<Eigen::VectorXd, Eigen::MatrixXd> ComInPolytopeCst::evaluate() const {
+  Eigen::VectorXd vals(cst_dim());
+  Eigen::MatrixXd jac(cst_dim(), control_joint_ids_.size());
+
+  auto com_tmp = kin_->get_com();
+  Eigen::Vector3d com(com_tmp.x, com_tmp.y, com_tmp.z);
+  auto com_jaco = kin_->get_com_jacobian(control_joint_ids_,
+                                         false);  // TODO: base must be true
+  double val = -polytope_sdf_->evaluate(com);
+  vals[0] = val;
+
+  Eigen::Vector3d grad;
+  for (size_t i = 0; i < 3; i++) {
+    Eigen::Vector3d perturbed_com = com;
+    perturbed_com[i] += 1e-6;
+    double val_perturbed = -polytope_sdf_->evaluate(perturbed_com);
+    grad[i] = (val_perturbed - val) / 1e-6;
+  }
+  jac.row(0) = com_jaco.transpose() * grad;
+
+  return {vals, jac};
+};
+
 void bind_collision_constraints(py::module& m) {
   auto cst_m = m.def_submodule("constraint");
   py::class_<ConstraintBase, ConstraintBase::Ptr>(cst_m, "ConstraintBase");
@@ -228,6 +257,15 @@ void bind_collision_constraints(py::module& m) {
       .def("update_kintree", &SphereCollisionCst::update_kintree)
       .def("is_valid", &SphereCollisionCst::is_valid)
       .def("evaluate", &SphereCollisionCst::evaluate);
+
+  py::class_<ComInPolytopeCst, ComInPolytopeCst::Ptr, IneqConstraintBase>(
+      cst_m, "ComInPolytopeCst")
+      .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
+                    const std::vector<std::string>&,
+                    primitive_sdf::BoxSDF::Ptr>())
+      .def("update_kintree", &ComInPolytopeCst::update_kintree)
+      .def("is_valid", &ComInPolytopeCst::is_valid)
+      .def("evaluate", &ComInPolytopeCst::evaluate);
 }
 
 }  // namespace cst

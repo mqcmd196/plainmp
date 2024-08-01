@@ -45,7 +45,7 @@ class IneqConstraintBase : public ConstraintBase {
  public:
   using Ptr = std::shared_ptr<IneqConstraintBase>;
   using ConstraintBase::ConstraintBase;
-  virtual bool is_valid() = 0;
+  virtual bool is_valid() const = 0;
   bool is_equality() const override { return false; }
 };
 
@@ -100,7 +100,7 @@ class SphereCollisionCst : public IneqConstraintBase {
     sdfs_ = sdfs;
   }
 
-  bool is_valid();
+  bool is_valid() const override;
   std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const override;
 
   size_t cst_dim() const {
@@ -127,6 +127,26 @@ class SphereCollisionCst : public IneqConstraintBase {
   std::vector<std::pair<size_t, size_t>> selcol_pairs_ids_;
   std::vector<PrimitiveSDFBase::Ptr> fixed_sdfs_;  // fixed after construction
   std::vector<PrimitiveSDFBase::Ptr> sdfs_;        // set later by user
+};
+
+class ComInPolytopeCst : public IneqConstraintBase {
+ public:
+  using Ptr = std::shared_ptr<ComInPolytopeCst>;
+  ComInPolytopeCst(std::shared_ptr<tinyfk::KinematicModel> kin,
+                   const std::vector<std::string>& control_joint_names,
+                   BoxSDF::Ptr polytope_sdf)
+      : IneqConstraintBase(kin, control_joint_names),
+        polytope_sdf_(polytope_sdf) {
+    polytope_sdf_->width_[2] = 1000;  // adhoc to represent infinite height
+  }
+
+  bool is_valid() const override;
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const override;
+
+  size_t cst_dim() const { return 1; }
+
+ private:
+  BoxSDF::Ptr polytope_sdf_;
 };
 
 void bind_collision_constraints(py::module& m);
