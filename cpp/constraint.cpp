@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <optional>
 #include <stdexcept>
+#include "composite_constraint.hpp"
 #include "primitive_sdf.hpp"
 #include "tinyfk.hpp"
 
@@ -312,6 +313,15 @@ void bind_collision_constraints(py::module& m) {
       .def("update_kintree", &ComInPolytopeCst::update_kintree)
       .def("is_valid", &ComInPolytopeCst::is_valid)
       .def("evaluate", &ComInPolytopeCst::evaluate);
+  py::class_<EqCompositeCst, EqCompositeCst::Ptr>(cst_m, "EqCompositeCst")
+      .def(py::init<std::vector<EqConstraintBase::Ptr>>())
+      .def("update_kintree", &EqCompositeCst::update_kintree)
+      .def("evaluate", &EqCompositeCst::evaluate);
+  py::class_<IneqCompositeCst, IneqCompositeCst::Ptr>(cst_m, "IneqCompositeCst")
+      .def(py::init<std::vector<IneqConstraintBase::Ptr>>())
+      .def("update_kintree", &IneqCompositeCst::update_kintree)
+      .def("evaluate", &IneqCompositeCst::evaluate)
+      .def("is_valid", &IneqCompositeCst::is_valid);
 }
 
 }  // namespace cst

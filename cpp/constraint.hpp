@@ -1,7 +1,11 @@
+#ifndef CONSTRAINT_HPP
+#define CONSTRAINT_HPP
+
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <algorithm>
 #include <memory>
 #include <tinyfk.hpp>
 #include <utility>
@@ -190,3 +194,4 @@ class ComInPolytopeCst : public IneqConstraintBase {
 void bind_collision_constraints(py::module& m);
 
 };  // namespace cst
+#endif

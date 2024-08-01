@@ -24,3 +24,11 @@ class AppliedForceSpec:
     force: np.ndarray
 
     def __init__(self, link_name: str, force: np.ndarray) -> None: ...
+
+# NOTE: actually EqCompositeCst is not a subclass of EqConstraintBase but has same interface
+class EqCompositeCst(EqConstraintBase):
+    def __init___(self, csts: Sequence[EqConstraintBase]) -> None: ...
+
+# NOTE: actually IneqCompositeCst is not a subclass of IneqConstraintBase but has same interface
+class IneqCompositeCst(IneqConstraintBase):
+    def __init___(self, csts: Sequence[IneqConstraintBase]) -> None: ...

@@ -2,7 +2,7 @@ import copy
 
 import numpy as np
 import pytest
-from fused.constraint import AppliedForceSpec, ComInPolytopeCst
+from fused.constraint import AppliedForceSpec, ComInPolytopeCst, EqCompositeCst
 from fused.psdf import BoxSDF, Pose
 from fused.robot_spec import FetchSpec
 
@@ -87,3 +87,17 @@ def test_com_in_polytope_constraint(with_base, with_force: bool):
         check_jacobian(cst, 8 + 6, std=0.1)
     else:
         check_jacobian(cst, 8)
+
+
+def test_eq_composite_constraint():
+    fs = FetchSpec()
+    cst1 = fs.create_gripper_pose_const([0.7, 0.0, 0.7])
+    cst2 = fs.create_pose_const(
+        ["gripper_link", "wrist_roll_link"], [[0.7, 0.0, 0.7], [0.7, 0.0, 0.7, 0.0, 0.0, 0.0]]
+    )
+    cst = EqCompositeCst([cst1, cst2])
+    check_jacobian(cst, 8)
+
+
+if __name__ == "__main__":
+    test_eq_composite_constraint()
