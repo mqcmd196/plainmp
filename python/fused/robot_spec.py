@@ -35,16 +35,17 @@ class RobotSpec(ABC):
             self.conf_dict = yaml.safe_load(f)
 
     @property
-    def control_joint_names(self) -> List[str]:
-        return self.conf_dict["control_joint_names"]
-
-    @property
     def robot_model(self) -> RobotModel:
         return load_urdf_model_using_cache(self.urdf_path)
 
     @property
     def urdf_path(self) -> Path:
         return Path(self.conf_dict["urdf_path"]).expanduser()
+
+    @property
+    @abstractmethod
+    def control_joint_names(self) -> List[str]:
+        ...
 
     @abstractmethod
     def self_body_collision_primitives(self) -> Sequence[Union[Box, Sphere, Cylinder]]:
@@ -89,8 +90,12 @@ class RobotSpec(ABC):
 
 class FetchSpec(RobotSpec):
     def __init__(self):
-        p = Path(__file__).parent / "conf" / "fetch_conf.yaml"
+        p = Path(__file__).parent / "conf" / "fetch.yaml"
         super().__init__(p)
+
+    @property
+    def control_joint_names(self) -> List[str]:
+        return self.conf_dict["control_joint_names"]
 
     def self_body_collision_primitives(self) -> Sequence[Union[Box, Sphere, Cylinder]]:
         base = Cylinder(0.29, 0.32, face_colors=[255, 255, 255, 200], with_sdf=True)
