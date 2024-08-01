@@ -8,6 +8,8 @@ import yaml
 from fused.constraint import LinkPoseCst, SphereAttachentSpec, SphereCollisionCst
 from fused.tinyfk import KinematicModel
 from fused.utils import sksdf_to_cppsdf
+from skrobot.coordinates import CascadedCoords
+from skrobot.coordinates.math import rotation_matrix, rpy_angle
 from skrobot.model.primitives import Box, Cylinder, Sphere
 from skrobot.model.robot_model import RobotModel
 from skrobot.utils.urdf import URDF, no_mesh_load_mode
@@ -35,8 +37,9 @@ class RobotSpec(ABC):
             self.conf_dict = yaml.safe_load(f)
 
     @property
+    @abstractmethod
     def robot_model(self) -> RobotModel:
-        return load_urdf_model_using_cache(self.urdf_path)
+        ...
 
     @property
     def urdf_path(self) -> Path:
@@ -94,6 +97,10 @@ class FetchSpec(RobotSpec):
         super().__init__(p)
 
     @property
+    def robot_model(self) -> RobotModel:
+        return load_urdf_model_using_cache(self.urdf_path)
+
+    @property
     def control_joint_names(self) -> List[str]:
         return self.conf_dict["control_joint_names"]
 
@@ -130,3 +137,55 @@ class FetchSpec(RobotSpec):
             [0.38615, 1.6056, 1.518, np.pi * 2, 2.251, np.pi * 2, 2.16, np.pi * 2]
         )
         return min_angles, max_angles
+
+
+class JaxonSpec(RobotSpec):
+    def __init__(self):
+        p = Path(__file__).parent / "conf" / "jaxon.yaml"
+        super().__init__(p)
+
+    def get_kin(self):
+        with open(self.urdf_path, "r") as f:
+            urdf_str = f.read()
+        kin = KinematicModel(urdf_str)
+        matrix = rotation_matrix(np.pi * 0.5, [0, 0, 1.0])
+        rpy = np.flip(rpy_angle(matrix)[0])
+        kin.add_new_link("rarm_end_coords", "LARM_LINK7", np.array([0, 0, -0.220]), rpy)
+        kin.add_new_link("larm_end_coords", "LARM_LINK7", np.array([0, 0, -0.220]), rpy)
+        kin.add_new_link("rleg_end_coords", "RLEG_LINK5", np.array([0, 0, -0.1]), np.zeros(3))
+        kin.add_new_link("lleg_end_coords", "LLEG_LINK5", np.array([0, 0, -0.1]), np.zeros(3))
+        return kin
+
+    @property
+    def robot_model(self) -> RobotModel:
+        matrix = rotation_matrix(np.pi * 0.5, [0, 0, 1.0])
+        model = load_urdf_model_using_cache(self.urdf_path)
+
+        model.rarm_end_coords = CascadedCoords(self.RARM_LINK7, name="rarm_end_coords")
+        model.rarm_end_coords.translate([0, 0, -0.220])
+        model.rarm_end_coords.rotate_with_matrix(matrix, wrt="local")
+
+        model.rarm_tip_coords = CascadedCoords(self.RARM_LINK7, name="rarm_end_coords")
+        model.rarm_tip_coords.translate([0, 0, -0.3])
+        model.rarm_tip_coords.rotate_with_matrix(matrix, wrt="local")
+
+        model.larm_end_coords = CascadedCoords(self.LARM_LINK7, name="larm_end_coords")
+        model.larm_end_coords.translate([0, 0, -0.220])
+        model.larm_end_coords.rotate_with_matrix(matrix, wrt="local")
+
+        model.rleg_end_coords = CascadedCoords(self.RLEG_LINK5, name="rleg_end_coords")
+        model.rleg_end_coords.translate([0, 0, -0.1])
+
+        model.lleg_end_coords = CascadedCoords(self.LLEG_LINK5, name="lleg_end_coords")
+        model.lleg_end_coords.translate([0, 0, -0.1])
+        return model
+
+    @property
+    def control_joint_names(self) -> List[str]:
+        return self.conf_dict["control_joint_names"]
+
+    def self_body_collision_primitives(self) -> Sequence[Union[Box, Sphere, Cylinder]]:
+        return []
+
+    def angle_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
+        pass
