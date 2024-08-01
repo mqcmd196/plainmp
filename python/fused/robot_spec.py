@@ -64,9 +64,11 @@ class RobotSpec(ABC):
     def angle_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
-    def create_collision_const(self, self_collision: bool = True) -> SphereCollisionCst:
+    def get_sphere_specs(self) -> List[SphereAttachentSpec]:
+        # the below reads the all the sphere specs from the yaml file
+        # but if you want to use the sphere specs for the specific links
+        # you can override this method
         d = self.conf_dict["collision_spheres"]
-
         sphere_specs = []
         for link_name, vals in d.items():
             ignore_collision = vals["ignore_collision"]
@@ -75,7 +77,13 @@ class RobotSpec(ABC):
                 vals = np.array(spec)
                 center, r = vals[:3], vals[3]
                 sphere_specs.append(SphereAttachentSpec(link_name, center, r, ignore_collision))
+        return sphere_specs
+
+    def create_collision_const(self, self_collision: bool = True) -> SphereCollisionCst:
+        sphere_specs = self.get_sphere_specs()
         if self_collision:
+            if "self_collision_pairs" not in self.conf_dict:
+                raise ValueError("self_collision_pairs is not defined in the yaml file")
             self_collision_pairs = self.conf_dict["self_collision_pairs"]
             sdfs = [sksdf_to_cppsdf(sk.sdf) for sk in self.self_body_collision_primitives()]
         else:
@@ -187,6 +195,16 @@ class JaxonSpec(RobotSpec):
     @property
     def control_joint_names(self) -> List[str]:
         return self.conf_dict["control_joint_names"]
+
+    def get_sphere_specs(self) -> List[SphereAttachentSpec]:
+        # because legs are on the ground, we don't need to consider the spheres on the legs
+        specs = super().get_sphere_specs()
+        filtered = []
+        for spec in specs:
+            if spec.parent_link_name in ("RLEG_LINK5", "LLEG_LINK5"):
+                continue
+            filtered.append(spec)
+        return filtered
 
     def self_body_collision_primitives(self) -> Sequence[Union[Box, Sphere, Cylinder]]:
         return []

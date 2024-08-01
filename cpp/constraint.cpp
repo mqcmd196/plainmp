@@ -243,8 +243,8 @@ void bind_collision_constraints(py::module& m) {
       .def("evaluate", &LinkPoseCst::evaluate)
       .def("cst_dim", &LinkPoseCst::cst_dim);
   py::class_<SphereAttachentSpec>(cst_m, "SphereAttachentSpec")
-      .def(
-          py::init<const std::string&, const Eigen::Vector3d&, double, bool>());
+      .def(py::init<const std::string&, const Eigen::Vector3d&, double, bool>())
+      .def_readonly("parent_link_name", &SphereAttachentSpec::parent_link_name);
 
   py::class_<SphereCollisionCst, SphereCollisionCst::Ptr, IneqConstraintBase>(
       cst_m, "SphereCollisionCst")
