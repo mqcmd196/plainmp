@@ -33,45 +33,57 @@ def check_jacobian(const, dim: int, eps: float = 1e-7, decimal: int = 4, std: fl
         np.testing.assert_almost_equal(jac_anal, jac_numel, decimal=decimal)
 
 
+@pytest.mark.parametrize("with_base", [False, True])
 @pytest.mark.parametrize("with_rpy", [False, True])
-def test_link_pose_constraint(with_rpy: bool):
+def test_link_pose_constraint(with_base: bool, with_rpy: bool):
     if with_rpy:
         pose = [0.7, 0.0, 0.7, 0.0, 0.0, 0.0]
     else:
         pose = [0.7, 0.0, 0.7]
 
-    fs = FetchSpec()
+    fs = FetchSpec(with_base=with_base)
     cst = fs.create_gripper_pose_const(pose)
-    check_jacobian(cst, 8)
+    if with_base:
+        check_jacobian(cst, 8 + 6, std=0.1)
+    else:
+        check_jacobian(cst, 8)
 
 
-def test_link_pose_constraint_multi_link():
+@pytest.mark.parametrize("with_base", [False, True])
+def test_link_pose_constraint_multi_link(with_base):
     pose1 = [0.7, 0.0, 0.7, 0.0, 0.0, 0.0]
     pose2 = [0.7, 0.0, 0.7]
-    fs = FetchSpec()
+    fs = FetchSpec(with_base=with_base)
     cst = fs.create_pose_const(["gripper_link", "wrist_roll_link"], [pose1, pose2])
-    check_jacobian(cst, 8)
+    if with_base:
+        check_jacobian(cst, 8 + 6, std=0.1)
+    else:
+        check_jacobian(cst, 8)
 
 
-def test_collision_free_constraint():
-    fs = FetchSpec()
+@pytest.mark.parametrize("with_base", [False, True])
+def test_collision_free_constraint(with_base):
+    fs = FetchSpec(with_base=with_base)
     sdf = BoxSDF([1, 1, 1], Pose([0.5, 0.5, 0.5], np.eye(3)))
     for self_collision in [False, True]:
         cst = fs.create_collision_const(self_collision)
         cst.set_sdfs([sdf])
-        check_jacobian(cst, 8)
+        if with_base:
+            check_jacobian(cst, 8 + 6, std=0.1)
+        else:
+            check_jacobian(cst, 8)
 
 
+@pytest.mark.parametrize("with_base", [False, True])
 @pytest.mark.parametrize("with_force", [False, True])
-def test_com_in_polytope_constraint(with_force: bool):
-    fs = FetchSpec()
+def test_com_in_polytope_constraint(with_base, with_force: bool):
+    fs = FetchSpec(with_base=with_base)
     sdf = BoxSDF([0.3, 0.3, 0], Pose([0.0, 0.0, 0.0], np.eye(3)))
     afspecs = []
     if with_force:
         afspecs.append(AppliedForceSpec("gripper_link", 2.0))
-    cst = ComInPolytopeCst(fs.get_kin(), fs.control_joint_names, False, sdf, afspecs)
-    check_jacobian(cst, 8)
-
-
-if __name__ == "__main__":
-    test_com_in_polytope_constraint()
+    cst = ComInPolytopeCst(fs.get_kin(), fs.control_joint_names, with_base, sdf, afspecs)
+    if with_base:
+        check_jacobian(cst, 8 + 6, std=0.1)
+    else:
+        check_jacobian(cst, 8)
