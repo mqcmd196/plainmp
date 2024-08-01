@@ -15,7 +15,16 @@ class CompositeConstraintBase {
  public:
   using Ptr = std::shared_ptr<CompositeConstraintBase>;
   CompositeConstraintBase(std::vector<T> constraints)
-      : constraints_(constraints) {}
+      : constraints_(constraints) {
+    // all constraints must have the same kinematic chain
+    // otherwise, the jacobian will be wrong
+    for (auto cst : constraints_) {
+      if (cst->kin_ != constraints_.front()->kin_) {
+        throw std::runtime_error(
+            "All constraints must have the same kinematic chain");
+      }
+    }
+  }
 
   void update_kintree(const std::vector<double>& q) {
     constraints_.front()->update_kintree(q);

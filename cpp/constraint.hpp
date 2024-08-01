@@ -53,8 +53,12 @@ class ConstraintBase {
   virtual bool is_equality() const = 0;
   virtual ~ConstraintBase() = default;
 
- protected:
+ public:
+  // want to make these protected, but will be used in CompositeConstraintBase
+  // making this friend is also an option, but it's too complicated
   std::shared_ptr<tinyfk::KinematicModel> kin_;
+
+ protected:
   std::vector<size_t> control_joint_ids_;
   bool with_base_;
 };
