@@ -5,16 +5,24 @@ from typing import Dict, List, Sequence, Tuple, Union
 
 import numpy as np
 import yaml
-from fused.constraint import LinkPoseCst, SphereAttachentSpec, SphereCollisionCst
+from fused.constraint import (
+    ComInPolytopeCst,
+    LinkPoseCst,
+    SphereAttachentSpec,
+    SphereCollisionCst,
+)
+from fused.psdf import BoxSDF, Pose
 from fused.tinyfk import KinematicModel
 from fused.utils import sksdf_to_cppsdf
 from skrobot.coordinates import CascadedCoords
 from skrobot.coordinates.math import rotation_matrix, rpy_angle
 from skrobot.model.primitives import Box, Cylinder, Sphere
 from skrobot.model.robot_model import RobotModel
+from skrobot.models.urdf import RobotModelFromURDF
 from skrobot.utils.urdf import URDF, no_mesh_load_mode
 
 _loaded_urdf_models: Dict[str, URDF] = {}
+_loaded_kin: Dict[str, KinematicModel] = {}
 
 
 def load_urdf_model_using_cache(file_path: Path, deepcopy: bool = True):
@@ -23,8 +31,8 @@ def load_urdf_model_using_cache(file_path: Path, deepcopy: bool = True):
     key = str(file_path)
     if key not in _loaded_urdf_models:
         with no_mesh_load_mode():
-            urdf = URDF.load(str(file_path))
-        _loaded_urdf_models[key] = urdf
+            model = RobotModelFromURDF(urdf_file=str(file_path))
+        _loaded_urdf_models[key] = model
     if deepcopy:
         return copy.deepcopy(_loaded_urdf_models[key])
     else:
@@ -38,14 +46,15 @@ class RobotSpec(ABC):
         self.with_base = with_base
 
     def get_kin(self) -> KinematicModel:
-        with open(self.urdf_path, "r") as f:
-            urdf_str = f.read()
-        kin = KinematicModel(urdf_str)
-        return kin
+        if str(self.urdf_path) not in _loaded_kin:
+            with open(self.urdf_path, "r") as f:
+                urdf_str = f.read()
+            kin = KinematicModel(urdf_str)
+            _loaded_kin[str(self.urdf_path)] = kin
+        return _loaded_kin[str(self.urdf_path)]
 
-    @property
     @abstractmethod
-    def robot_model(self) -> RobotModel:
+    def get_robot_model(self) -> RobotModel:
         ...
 
     @property
@@ -99,11 +108,9 @@ class RobotSpec(ABC):
         return cst
 
     def create_pose_const(self, link_names: List[str], link_poses: List[np.ndarray]) -> LinkPoseCst:
-        # read urdf file to str
-        with open(self.urdf_path, "r") as f:
-            urdf_str = f.read()
-        kin = KinematicModel(urdf_str)
-        return LinkPoseCst(kin, self.control_joint_names, self.with_base, link_names, link_poses)
+        return LinkPoseCst(
+            self.get_kin(), self.control_joint_names, self.with_base, link_names, link_poses
+        )
 
 
 class FetchSpec(RobotSpec):
@@ -112,8 +119,7 @@ class FetchSpec(RobotSpec):
         p = Path(__file__).parent / "conf" / "fetch.yaml"
         super().__init__(p, with_base)
 
-    @property
-    def robot_model(self) -> RobotModel:
+    def get_robot_model(self) -> RobotModel:
         return load_urdf_model_using_cache(self.urdf_path)
 
     @property
@@ -158,39 +164,46 @@ class FetchSpec(RobotSpec):
 class JaxonSpec(RobotSpec):
     def __init__(self):
         p = Path(__file__).parent / "conf" / "jaxon.yaml"
-        super().__init__(p)
+        super().__init__(p, with_base=True)  # jaxon is free-floating, so with_base=True
 
     def get_kin(self):
         kin = super().get_kin()
-        matrix = rotation_matrix(np.pi * 0.5, [0, 0, 1.0])
-        rpy = np.flip(rpy_angle(matrix)[0])
-        kin.add_new_link("rarm_end_coords", "LARM_LINK7", np.array([0, 0, -0.220]), rpy)
-        kin.add_new_link("larm_end_coords", "LARM_LINK7", np.array([0, 0, -0.220]), rpy)
-        kin.add_new_link("rleg_end_coords", "RLEG_LINK5", np.array([0, 0, -0.1]), np.zeros(3))
-        kin.add_new_link("lleg_end_coords", "LLEG_LINK5", np.array([0, 0, -0.1]), np.zeros(3))
+        # the below is a workaround.
+        try:
+            # this raise error is those links are not attached.
+            kin.get_link_ids(
+                ["rarm_end_coords", "larm_end_coords", "rleg_end_coords", "lleg_end_coords"]
+            )
+        except ValueError:
+            # so in the only first call of get_kin() the following code is executed.
+            matrix = rotation_matrix(np.pi * 0.5, [0, 0, 1.0])
+            rpy = np.flip(rpy_angle(matrix)[0])
+            kin.add_new_link("rarm_end_coords", "LARM_LINK7", np.array([0, 0, -0.220]), rpy)
+            kin.add_new_link("larm_end_coords", "LARM_LINK7", np.array([0, 0, -0.220]), rpy)
+            kin.add_new_link("rleg_end_coords", "RLEG_LINK5", np.array([0, 0, -0.1]), np.zeros(3))
+            kin.add_new_link("lleg_end_coords", "LLEG_LINK5", np.array([0, 0, -0.1]), np.zeros(3))
         return kin
 
-    @property
-    def robot_model(self) -> RobotModel:
+    def get_robot_model(self) -> RobotModel:
         matrix = rotation_matrix(np.pi * 0.5, [0, 0, 1.0])
         model = load_urdf_model_using_cache(self.urdf_path)
 
-        model.rarm_end_coords = CascadedCoords(self.RARM_LINK7, name="rarm_end_coords")
+        model.rarm_end_coords = CascadedCoords(model.RARM_LINK7, name="rarm_end_coords")
         model.rarm_end_coords.translate([0, 0, -0.220])
         model.rarm_end_coords.rotate_with_matrix(matrix, wrt="local")
 
-        model.rarm_tip_coords = CascadedCoords(self.RARM_LINK7, name="rarm_end_coords")
+        model.rarm_tip_coords = CascadedCoords(model.RARM_LINK7, name="rarm_end_coords")
         model.rarm_tip_coords.translate([0, 0, -0.3])
         model.rarm_tip_coords.rotate_with_matrix(matrix, wrt="local")
 
-        model.larm_end_coords = CascadedCoords(self.LARM_LINK7, name="larm_end_coords")
+        model.larm_end_coords = CascadedCoords(model.LARM_LINK7, name="larm_end_coords")
         model.larm_end_coords.translate([0, 0, -0.220])
         model.larm_end_coords.rotate_with_matrix(matrix, wrt="local")
 
-        model.rleg_end_coords = CascadedCoords(self.RLEG_LINK5, name="rleg_end_coords")
+        model.rleg_end_coords = CascadedCoords(model.RLEG_LINK5, name="rleg_end_coords")
         model.rleg_end_coords.translate([0, 0, -0.1])
 
-        model.lleg_end_coords = CascadedCoords(self.LLEG_LINK5, name="lleg_end_coords")
+        model.lleg_end_coords = CascadedCoords(model.LLEG_LINK5, name="lleg_end_coords")
         model.lleg_end_coords.translate([0, 0, -0.1])
         return model
 
@@ -211,5 +224,127 @@ class JaxonSpec(RobotSpec):
     def self_body_collision_primitives(self) -> Sequence[Union[Box, Sphere, Cylinder]]:
         return []
 
+    def create_default_stand_pose_const(self) -> LinkPoseCst:
+        robot_model = self.get_robot_model()
+        # set reset manip pose
+        for jn, angle in zip(self.control_joint_names, self.reset_manip_pose_q):
+            robot_model.__dict__[jn].joint_angle(angle)
+
+        def skcoords_to_xyzrpy(co):
+            pos = co.worldpos()
+            ypr = rpy_angle(co.rotation)[0]
+            rpy = [ypr[2], ypr[1], ypr[0]]
+            return np.hstack([pos, rpy])
+
+        rleg = robot_model.rleg_end_coords.copy_worldcoords()
+        lleg = robot_model.lleg_end_coords.copy_worldcoords()
+        return self.create_pose_const(
+            ["rleg_end_coords", "lleg_end_coords"],
+            [skcoords_to_xyzrpy(rleg), skcoords_to_xyzrpy(lleg)],
+        )
+
+    def create_default_com_const(self) -> ComInPolytopeCst:
+        com_box = BoxSDF([0.25, 0.5, 0.0], Pose(np.array([0, 0, 0]), np.eye(3)))
+        return ComInPolytopeCst(
+            self.get_kin(), self.control_joint_names, self.with_base, com_box, []
+        )
+
+    @property
+    def reset_manip_pose_q(self) -> np.ndarray:
+        angle_table = {
+            "RLEG": [0.0, 0.0, -0.349066, 0.698132, -0.349066, 0.0],
+            "LLEG": [0.0, 0.0, -0.349066, 0.698132, -0.349066, 0.0],
+            "CHEST": [0.0, 0.0, 0.0],
+            "RARM": [0.0, 0.959931, -0.349066, -0.261799, -1.74533, -0.436332, 0.0, -0.785398],
+            "LARM": [0.0, 0.959931, 0.349066, 0.261799, -1.74533, 0.436332, 0.0, -0.785398],
+        }
+        d = {}
+        for key, values in angle_table.items():
+            for i, angle in enumerate(values):
+                d["{}_JOINT{}".format(key, i)] = angle
+        return np.array([d[joint] for joint in self.control_joint_names])
+
     def angle_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
-        pass
+        lb = np.array(
+            [
+                -0.144751,
+                -1.4208,
+                -3.14159,
+                -3.14159,
+                -3.14159,
+                0.2762,
+                -3.14159,
+                -3.14159,
+                -2.19006,
+                -2.19006,
+                -3.14159,
+                -3.14159,
+                -1.5708,
+                -1.54494,
+                -1.41372,
+                -1.41372,
+                -1.02662,
+                -1.0972,
+                -0.725029,
+                -0.523599,
+                -2.11843,
+                -2.11843,
+                0.0,
+                0.0,
+                -1.38564,
+                -1.38564,
+                -1.0472,
+                -1.0472,
+                -0.198551,
+                -0.0349066,
+                -1.0566,
+                -1.0,
+                -1.0,
+                0.0,
+                -1.0,
+                -1.0,
+                -1.0,
+            ]
+        )
+        ub = np.array(
+            [
+                1.4208,
+                0.144751,
+                3.14159,
+                3.14159,
+                -0.2762,
+                3.14159,
+                3.14159,
+                3.14159,
+                1.0472,
+                1.0472,
+                3.14159,
+                3.14159,
+                1.54494,
+                1.5708,
+                1.0472,
+                1.0472,
+                1.0972,
+                1.02662,
+                0.523599,
+                0.725029,
+                0.785398,
+                0.785398,
+                2.77419,
+                2.77419,
+                1.47343,
+                1.47343,
+                1.0472,
+                1.0472,
+                0.198551,
+                0.610865,
+                1.0566,
+                2.0,
+                1.0,
+                3.0,
+                1.0,
+                1.0,
+                1.0,
+            ]
+        )
+        return lb, ub
