@@ -36,6 +36,12 @@ class RobotSpec(ABC):
         with open(conf_file, "r") as f:
             self.conf_dict = yaml.safe_load(f)
 
+    def get_kin(self) -> KinematicModel:
+        with open(self.urdf_path, "r") as f:
+            urdf_str = f.read()
+        kin = KinematicModel(urdf_str)
+        return kin
+
     @property
     @abstractmethod
     def robot_model(self) -> RobotModel:
@@ -145,9 +151,7 @@ class JaxonSpec(RobotSpec):
         super().__init__(p)
 
     def get_kin(self):
-        with open(self.urdf_path, "r") as f:
-            urdf_str = f.read()
-        kin = KinematicModel(urdf_str)
+        kin = super().get_kin()
         matrix = rotation_matrix(np.pi * 0.5, [0, 0, 1.0])
         rpy = np.flip(rpy_angle(matrix)[0])
         kin.add_new_link("rarm_end_coords", "LARM_LINK7", np.array([0, 0, -0.220]), rpy)

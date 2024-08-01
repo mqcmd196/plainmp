@@ -2,6 +2,7 @@ import copy
 
 import numpy as np
 import pytest
+from fused.constraint import ComInPolytopeCst
 from fused.psdf import BoxSDF, Pose
 from fused.robot_spec import FetchSpec
 
@@ -59,3 +60,14 @@ def test_collision_free_constraint():
         cst = fs.create_collision_const(self_collision)
         cst.set_sdfs([sdf])
         check_jacobian(cst, 8)
+
+
+def test_com_in_polytope_constraint():
+    fs = FetchSpec()
+    sdf = BoxSDF([0.3, 0.3, 0], Pose([0.0, 0.0, 0.0], np.eye(3)))
+    cst = ComInPolytopeCst(fs.get_kin(), fs.control_joint_names, sdf)
+    check_jacobian(cst, 8)
+
+
+if __name__ == "__main__":
+    test_com_in_polytope_constraint()
