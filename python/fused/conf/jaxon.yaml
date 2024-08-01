@@ -1,0 +1,176 @@
+urdf_path: ~/.cache/robot_descriptions/jaxon_description/urdf/jaxon_jvrc.urdf 
+control_joint_names:
+  - RARM_JOINT0
+  - RARM_JOINT1
+  - RARM_JOINT2
+  - RARM_JOINT3
+  - RARM_JOINT4
+  - RARM_JOINT5
+  - RARM_JOINT6
+  - RARM_JOINT7
+  - LARM_JOINT0
+  - LARM_JOINT1
+  - LARM_JOINT2
+  - LARM_JOINT3
+  - LARM_JOINT4
+  - LARM_JOINT5
+  - LARM_JOINT6
+  - LARM_JOINT7
+  - RLEG_JOINT0
+  - RLEG_JOINT1
+  - RLEG_JOINT2
+  - RLEG_JOINT3
+  - RLEG_JOINT4
+  - RLEG_JOINT5
+  - RLEG_JOINT6
+  - LLEG_JOINT0
+  - LLEG_JOINT1
+  - LLEG_JOINT2
+  - LLEG_JOINT3
+  - LLEG_JOINT4
+  - LLEG_JOINT5
+  - LLEG_JOINT6
+  - CHEST_JOINT0
+  - CHEST_JOINT1
+  - CHEST_JOINT2
+      
+collision_spheres:
+  RLEG_LINK5:
+    ignore_collision: false
+    spheres:
+      - [-0.08, 0.035, -0.075, 0.04]
+      - [-0.08, -0.05, -0.075, 0.04]
+      - [0.105, 0.035, -0.075, 0.04]
+      - [0.105, -0.05, -0.075, 0.04]
+      - [-0.0, 0.0, -0.075, 0.04]
+      - [0.0, 0.0, 0.0, 0.07]
+  LLEG_LINK5:
+    ignore_collision: false
+    spheres:
+      - [-0.08, -0.035, -0.075, 0.04]
+      - [-0.08, 0.05, -0.075, 0.04]
+      - [0.105, -0.035, -0.075, 0.04]
+      - [0.105, 0.05, -0.075, 0.04]
+      - [-0.0, 0.0, -0.075, 0.04]
+      - [0.0, 0.0, 0.0, 0.07]
+  RLEG_LINK3:
+    ignore_collision: false
+    spheres:
+      - [0.0, -0.015, 0.0, 0.09]
+      - [0.02, -0.015, -0.07, 0.09]
+      - [0.02, -0.015, -0.14, 0.09]
+      - [0.02, -0.015, -0.21, 0.09]
+      - [0.0, -0.015, -0.3, 0.08]
+      - [0.0, -0.015, -0.35, 0.08]
+  LLEG_LINK3:
+    ignore_collision: false
+    spheres:
+      - [0.0, 0.015, 0.0, 0.09]
+      - [0.02, 0.015, -0.07, 0.09]
+      - [0.02, 0.015, -0.14, 0.09]
+      - [0.02, 0.015, -0.21, 0.09]
+      - [0.0, 0.015, -0.3, 0.08]
+      - [0.0, 0.015, -0.35, 0.08]
+  RLEG_LINK2:
+    ignore_collision: false
+    spheres:
+      - [-0.02, -0.01, 0.0, 0.12]
+      - [-0.02, -0.01, -0.08, 0.12]
+      - [0.02, -0.01, -0.16, 0.12]
+      - [0.02, -0.02, -0.24, 0.1]
+      - [0.02, -0.02, -0.32, 0.1]
+  LLEG_LINK2:
+    ignore_collision: false
+    spheres:
+      - [-0.02, 0.01, 0.0, 0.12]
+      - [-0.02, 0.01, -0.08, 0.12]
+      - [0.02, 0.01, -0.16, 0.12]
+      - [0.02, 0.02, -0.24, 0.1]
+      - [0.02, 0.02, -0.32, 0.1]
+  RARM_FINGER0:
+    ignore_collision: false
+    spheres:
+      - [0.04, 0.01, 0.0, 0.02]
+      - [0.06, 0.02, 0.0, 0.02]
+      - [0.1, 0.02, 0.0, 0.02]
+      - [0.14, 0.01, 0.0, 0.02]
+  RARM_FINGER1:
+    ignore_collision: false
+    spheres:
+      - [0.04, -0.01, 0.02, 0.02]
+      - [0.06, -0.02, 0.02, 0.02]
+      - [0.1, -0.02, 0.02, 0.02]
+      - [0.14, -0.01, 0.02, 0.02]
+      - [0.04, -0.01, -0.02, 0.02]
+      - [0.06, -0.02, -0.02, 0.02]
+      - [0.1, -0.02, -0.02, 0.02]
+      - [0.14, -0.01, -0.02, 0.02]
+  RARM_LINK7:
+    ignore_collision: false
+    spheres:
+      - [0.0, 0.04, -0.16, 0.06]
+      - [0.0, -0.04, -0.16, 0.06]
+      - [0.0, 0.0, -0.10, 0.06]
+      - [0.03, 0.0, -0.15, 0.06]
+  LARM_FINGER0:
+    ignore_collision: false
+    spheres:
+      - [0.04, 0.01, 0.0, 0.02]
+      - [0.06, 0.02, 0.0, 0.02]
+      - [0.1, 0.02, 0.0, 0.02]
+      - [0.14, 0.01, 0.0, 0.02]
+  LARM_FINGER1:
+    ignore_collision: false
+    spheres:
+      - [0.04, -0.01, 0.02, 0.02]
+      - [0.06, -0.02, 0.02, 0.02]
+      - [0.1, -0.02, 0.02, 0.02]
+      - [0.14, -0.01, 0.02, 0.02]
+      - [0.04, -0.01, -0.02, 0.02]
+      - [0.06, -0.02, -0.02, 0.02]
+      - [0.1, -0.02, -0.02, 0.02]
+      - [0.14, -0.01, -0.02, 0.02]
+  LARM_LINK7:
+    ignore_collision: false
+    spheres:
+      - [0.0, 0.04, -0.16, 0.06]
+      - [0.0, -0.04, -0.16, 0.06]
+      - [0.0, 0.0, -0.10, 0.06]
+      - [0.03, 0.0, -0.15, 0.06]
+  RARM_LINK5:
+    ignore_collision: false
+    spheres:
+      - [0.0, 0.0, 0.14, 0.08]
+      - [0.0, 0.0, 0.04, 0.08]
+      - [0.0, 0.0, -0.06, 0.09]
+      - [0.0, 0.0, -0.16, 0.09]
+  LARM_LINK5:
+    ignore_collision: false
+    spheres:
+      - [0.0, 0.0, 0.14, 0.08]
+      - [0.0, 0.0, 0.04, 0.08]
+      - [0.0, 0.0, -0.06, 0.09]
+      - [0.0, 0.0, -0.16, 0.09]
+  RARM_LINK3:
+    ignore_collision: false
+    spheres:
+      - [0.0, 0.0, 0.16, 0.08]
+      - [0.0, 0.0, 0.06, 0.08]
+      - [0.0, 0.0, -0.04, 0.08]
+  LARM_LINK3:
+    ignore_collision: false
+    spheres:
+      - [0.0, 0.0, 0.16, 0.08]
+      - [0.0, 0.0, 0.06, 0.08]
+      - [0.0, 0.0, -0.04, 0.08]
+  CHEST_LINK2:
+    ignore_collision: false
+    spheres:
+      - [-0.06, 0.0, -0.05, 0.25]
+      - [-0.17, 0.0, -0.03, 0.25]
+      - [-0.08, 0.0, -0.27, 0.25]
+  HEAD_LINK0:
+    ignore_collision: false
+    spheres:
+      - [0.0, 0.0, 0.1, 0.15]
+      - [0.0, 0.0, 0.2, 0.15]
