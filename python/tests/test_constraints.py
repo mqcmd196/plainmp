@@ -69,7 +69,7 @@ def test_com_in_polytope_constraint(with_force: bool):
     afspecs = []
     if with_force:
         afspecs.append(AppliedForceSpec("gripper_link", 2.0))
-    cst = ComInPolytopeCst(fs.get_kin(), fs.control_joint_names, sdf, afspecs)
+    cst = ComInPolytopeCst(fs.get_kin(), fs.control_joint_names, False, sdf, afspecs)
     check_jacobian(cst, 8)
 
 

@@ -32,9 +32,10 @@ def load_urdf_model_using_cache(file_path: Path, deepcopy: bool = True):
 
 
 class RobotSpec(ABC):
-    def __init__(self, conf_file: Path):
+    def __init__(self, conf_file: Path, with_base: bool):
         with open(conf_file, "r") as f:
             self.conf_dict = yaml.safe_load(f)
+        self.with_base = with_base
 
     def get_kin(self) -> KinematicModel:
         with open(self.urdf_path, "r") as f:
@@ -93,7 +94,7 @@ class RobotSpec(ABC):
             urdf_str = f.read()
         kin = KinematicModel(urdf_str)
         cst = SphereCollisionCst(
-            kin, self.control_joint_names, sphere_specs, self_collision_pairs, sdfs
+            kin, self.control_joint_names, self.with_base, sphere_specs, self_collision_pairs, sdfs
         )
         return cst
 
@@ -102,13 +103,14 @@ class RobotSpec(ABC):
         with open(self.urdf_path, "r") as f:
             urdf_str = f.read()
         kin = KinematicModel(urdf_str)
-        return LinkPoseCst(kin, self.control_joint_names, link_names, link_poses)
+        return LinkPoseCst(kin, self.control_joint_names, self.with_base, link_names, link_poses)
 
 
 class FetchSpec(RobotSpec):
-    def __init__(self):
+    def __init__(self, with_base: bool = False):
+        # set with_base = True only in testing
         p = Path(__file__).parent / "conf" / "fetch.yaml"
-        super().__init__(p)
+        super().__init__(p, with_base)
 
     @property
     def robot_model(self) -> RobotModel:
