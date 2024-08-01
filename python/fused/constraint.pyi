@@ -18,3 +18,9 @@ class SphereCollisionCst(IneqConstraintBase):
     def set_sdfs(self, sdfs: Sequence[PrimitiveSDFBase]) -> None: ...
 
 class ComInPolytopeCst(IneqConstraintBase): ...
+
+class AppliedForceSpec:
+    link_name: str
+    force: np.ndarray
+
+    def __init__(self, link_name: str, force: np.ndarray) -> None: ...

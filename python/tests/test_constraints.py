@@ -2,7 +2,7 @@ import copy
 
 import numpy as np
 import pytest
-from fused.constraint import ComInPolytopeCst
+from fused.constraint import AppliedForceSpec, ComInPolytopeCst
 from fused.psdf import BoxSDF, Pose
 from fused.robot_spec import FetchSpec
 
@@ -62,10 +62,14 @@ def test_collision_free_constraint():
         check_jacobian(cst, 8)
 
 
-def test_com_in_polytope_constraint():
+@pytest.mark.parametrize("with_force", [False, True])
+def test_com_in_polytope_constraint(with_force: bool):
     fs = FetchSpec()
     sdf = BoxSDF([0.3, 0.3, 0], Pose([0.0, 0.0, 0.0], np.eye(3)))
-    cst = ComInPolytopeCst(fs.get_kin(), fs.control_joint_names, sdf)
+    afspecs = []
+    if with_force:
+        afspecs.append(AppliedForceSpec("gripper_link", 2.0))
+    cst = ComInPolytopeCst(fs.get_kin(), fs.control_joint_names, sdf, afspecs)
     check_jacobian(cst, 8)
 
 

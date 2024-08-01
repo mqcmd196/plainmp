@@ -129,15 +129,27 @@ class SphereCollisionCst : public IneqConstraintBase {
   std::vector<PrimitiveSDFBase::Ptr> sdfs_;        // set later by user
 };
 
+struct AppliedForceSpec {
+  std::string link_name;
+  double force;  // currently only z-axis force (minus direction) is supported
+};
+
 class ComInPolytopeCst : public IneqConstraintBase {
  public:
   using Ptr = std::shared_ptr<ComInPolytopeCst>;
   ComInPolytopeCst(std::shared_ptr<tinyfk::KinematicModel> kin,
                    const std::vector<std::string>& control_joint_names,
-                   BoxSDF::Ptr polytope_sdf)
+                   BoxSDF::Ptr polytope_sdf,
+                   const std::vector<AppliedForceSpec> applied_forces)
       : IneqConstraintBase(kin, control_joint_names),
         polytope_sdf_(polytope_sdf) {
     polytope_sdf_->width_[2] = 1000;  // adhoc to represent infinite height
+    auto force_link_names = std::vector<std::string>();
+    for (auto& force : applied_forces) {
+      force_link_names.push_back(force.link_name);
+      applied_force_values_.push_back(force.force);
+    }
+    force_link_ids_ = kin_->get_link_ids(force_link_names);
   }
 
   bool is_valid() const override;
@@ -147,6 +159,8 @@ class ComInPolytopeCst : public IneqConstraintBase {
 
  private:
   BoxSDF::Ptr polytope_sdf_;
+  std::vector<size_t> force_link_ids_;
+  std::vector<double> applied_force_values_;
 };
 
 void bind_collision_constraints(py::module& m);

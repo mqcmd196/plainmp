@@ -198,8 +198,23 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
 }
 
 bool ComInPolytopeCst::is_valid() const {
+  // COPIED from evaluate() >> START
   auto com_tmp = kin_->get_com();
   Eigen::Vector3d com(com_tmp.x, com_tmp.y, com_tmp.z);
+  if (force_link_ids_.size() > 0) {
+    double vertical_force_sum = 1.0;  // 1.0 for normalized self
+    tinyfk::Transform pose;
+    for (size_t j = 0; j < force_link_ids_.size(); ++j) {
+      double force = applied_force_values_[j] / kin_->total_mass_;
+      vertical_force_sum += force;
+      kin_->get_link_pose(force_link_ids_[j], pose);
+      Eigen::Vector3d force_pos(pose.position.x, pose.position.y,
+                                pose.position.z);
+      com += force * force_pos;
+    }
+    com /= vertical_force_sum;
+  }
+  // COPIED from evaluate() >> END
   return polytope_sdf_->evaluate(com) < 0;
 }
 
@@ -209,8 +224,27 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ComInPolytopeCst::evaluate() const {
 
   auto com_tmp = kin_->get_com();
   Eigen::Vector3d com(com_tmp.x, com_tmp.y, com_tmp.z);
+
   auto com_jaco = kin_->get_com_jacobian(control_joint_ids_,
                                          false);  // TODO: base must be true
+  if (force_link_ids_.size() > 0) {
+    double vertical_force_sum = 1.0;  // 1.0 for normalized self
+    tinyfk::Transform pose;
+    for (size_t j = 0; j < force_link_ids_.size(); ++j) {
+      double force = applied_force_values_[j] / kin_->total_mass_;
+      vertical_force_sum += force;
+      kin_->get_link_pose(force_link_ids_[j], pose);
+      Eigen::Vector3d force_pos(pose.position.x, pose.position.y,
+                                pose.position.z);
+      com += force * force_pos;
+
+      com_jaco +=
+          kin_->get_jacobian(force_link_ids_[j], control_joint_ids_) * force;
+    }
+    double inv = 1.0 / vertical_force_sum;
+    com *= inv;
+    com_jaco *= inv;
+  }
   double val = -polytope_sdf_->evaluate(com);
   vals[0] = val;
 
@@ -258,11 +292,16 @@ void bind_collision_constraints(py::module& m) {
       .def("is_valid", &SphereCollisionCst::is_valid)
       .def("evaluate", &SphereCollisionCst::evaluate);
 
+  py::class_<AppliedForceSpec>(cst_m, "AppliedForceSpec")
+      .def(py::init<const std::string&, double>())
+      .def_readonly("link_name", &AppliedForceSpec::link_name)
+      .def_readonly("force", &AppliedForceSpec::force);
+
   py::class_<ComInPolytopeCst, ComInPolytopeCst::Ptr, IneqConstraintBase>(
       cst_m, "ComInPolytopeCst")
       .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
-                    const std::vector<std::string>&,
-                    primitive_sdf::BoxSDF::Ptr>())
+                    const std::vector<std::string>&, primitive_sdf::BoxSDF::Ptr,
+                    const std::vector<AppliedForceSpec>&>())
       .def("update_kintree", &ComInPolytopeCst::update_kintree)
       .def("is_valid", &ComInPolytopeCst::is_valid)
       .def("evaluate", &ComInPolytopeCst::evaluate);
