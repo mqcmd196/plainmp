@@ -11,7 +11,7 @@ namespace py = pybind11;
 
 std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate() const {
   Eigen::VectorXd vals(cst_dim());
-  Eigen::MatrixXd jac(cst_dim(), control_joint_ids_.size());
+  Eigen::MatrixXd jac(cst_dim(), q_dim());
   tinyfk::Transform pose;
   size_t head = 0;
   for (size_t i = 0; i < link_ids_.size(); i++) {
@@ -20,8 +20,9 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate() const {
       vals.segment(head, 3) =
           Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z) -
           poses_[i];
-      jac.block(head, 0, 3, control_joint_ids_.size()) = kin_->get_jacobian(
-          link_ids_[i], control_joint_ids_, tinyfk::RotationType::IGNORE);
+      jac.block(head, 0, 3, q_dim()) =
+          kin_->get_jacobian(link_ids_[i], control_joint_ids_,
+                             tinyfk::RotationType::IGNORE, with_base_);
       head += 3;
     } else {
       vals.segment(head, 3) =
@@ -30,8 +31,9 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate() const {
       auto rpy = pose.rotation.getRPY();
       vals.segment(head + 3, 3) =
           Eigen::Vector3d(rpy.x, rpy.y, rpy.z) - poses_[i].segment(3, 3);
-      jac.block(head, 0, 6, control_joint_ids_.size()) = kin_->get_jacobian(
-          link_ids_[i], control_joint_ids_, tinyfk::RotationType::RPY);
+      jac.block(head, 0, 6, q_dim()) =
+          kin_->get_jacobian(link_ids_[i], control_joint_ids_,
+                             tinyfk::RotationType::RPY, with_base_);
       head += 6;
     }
   }
@@ -41,10 +43,11 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate() const {
 SphereCollisionCst::SphereCollisionCst(
     std::shared_ptr<tinyfk::KinematicModel> kin,
     const std::vector<std::string>& control_joint_names,
+    bool with_base,
     const std::vector<SphereAttachentSpec>& sphere_specs,
     const std::vector<std::pair<std::string, std::string>>& selcol_pairs,
     const std::vector<primitive_sdf::PrimitiveSDFBase::Ptr>& fixed_sdfs)
-    : IneqConstraintBase(kin, control_joint_names),
+    : IneqConstraintBase(kin, control_joint_names, with_base),
       sphere_specs_(sphere_specs),
       fixed_sdfs_(fixed_sdfs) {
   std::vector<std::string> parent_link_names;
@@ -114,7 +117,7 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
 
   // collision vs outers
   tinyfk::Transform pose;
-  Eigen::VectorXd grad_in_cspace_other(control_joint_ids_.size());
+  Eigen::VectorXd grad_in_cspace_other(q_dim());
   double min_val_other = std::numeric_limits<double>::max();
   std::optional<size_t> min_sphere_idx = std::nullopt;
   std::optional<size_t> min_sdf_idx = std::nullopt;
@@ -146,7 +149,8 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
       grad[i] = (val - min_val_other) / 1e-6;
     }
     auto sphere_jac =
-        kin_->get_jacobian(sphere_ids_[*min_sphere_idx], control_joint_ids_);
+        kin_->get_jacobian(sphere_ids_[*min_sphere_idx], control_joint_ids_,
+                           tinyfk::RotationType::IGNORE, with_base_);
     grad_in_cspace_other = sphere_jac.transpose() * grad;
   }
 
@@ -181,9 +185,11 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
       kin_->get_link_pose(sphere_ids_[min_pair->second], pose);
       center2 << pose.position.x, pose.position.y, pose.position.z;
       Eigen::MatrixXd&& jac1 =
-          kin_->get_jacobian(sphere_ids_[min_pair->first], control_joint_ids_);
+          kin_->get_jacobian(sphere_ids_[min_pair->first], control_joint_ids_,
+                             tinyfk::RotationType::IGNORE, with_base_);
       Eigen::MatrixXd&& jac2 =
-          kin_->get_jacobian(sphere_ids_[min_pair->second], control_joint_ids_);
+          kin_->get_jacobian(sphere_ids_[min_pair->second], control_joint_ids_,
+                             tinyfk::RotationType::IGNORE, with_base_);
       double norminv = 1.0 / (center1 - center2).norm();
       grad_in_cspace_self =
           norminv * (center1 - center2).transpose() * (jac1 - jac2);
@@ -220,13 +226,12 @@ bool ComInPolytopeCst::is_valid() const {
 
 std::pair<Eigen::VectorXd, Eigen::MatrixXd> ComInPolytopeCst::evaluate() const {
   Eigen::VectorXd vals(cst_dim());
-  Eigen::MatrixXd jac(cst_dim(), control_joint_ids_.size());
+  Eigen::MatrixXd jac(cst_dim(), q_dim());
 
   auto com_tmp = kin_->get_com();
   Eigen::Vector3d com(com_tmp.x, com_tmp.y, com_tmp.z);
 
-  auto com_jaco = kin_->get_com_jacobian(control_joint_ids_,
-                                         false);  // TODO: base must be true
+  auto com_jaco = kin_->get_com_jacobian(control_joint_ids_, q_dim());
   if (force_link_ids_.size() > 0) {
     double vertical_force_sum = 1.0;  // 1.0 for normalized self
     tinyfk::Transform pose;
@@ -238,8 +243,9 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> ComInPolytopeCst::evaluate() const {
                                 pose.position.z);
       com += force * force_pos;
 
-      com_jaco +=
-          kin_->get_jacobian(force_link_ids_[j], control_joint_ids_) * force;
+      com_jaco += kin_->get_jacobian(force_link_ids_[j], control_joint_ids_,
+                                     tinyfk::RotationType::IGNORE, with_base_) *
+                  force;
     }
     double inv = 1.0 / vertical_force_sum;
     com *= inv;
@@ -270,7 +276,7 @@ void bind_collision_constraints(py::module& m) {
   py::class_<LinkPoseCst, LinkPoseCst::Ptr, EqConstraintBase>(cst_m,
                                                               "LinkPoseCst")
       .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
-                    const std::vector<std::string>&,
+                    const std::vector<std::string>&, bool,
                     const std::vector<std::string>&,
                     const std::vector<Eigen::VectorXd>&>())
       .def("update_kintree", &LinkPoseCst::update_kintree)
@@ -283,7 +289,7 @@ void bind_collision_constraints(py::module& m) {
   py::class_<SphereCollisionCst, SphereCollisionCst::Ptr, IneqConstraintBase>(
       cst_m, "SphereCollisionCst")
       .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
-                    const std::vector<std::string>&,
+                    const std::vector<std::string>&, bool,
                     const std::vector<SphereAttachentSpec>&,
                     const std::vector<std::pair<std::string, std::string>>&,
                     const std::vector<primitive_sdf::PrimitiveSDFBase::Ptr>&>())
@@ -300,7 +306,8 @@ void bind_collision_constraints(py::module& m) {
   py::class_<ComInPolytopeCst, ComInPolytopeCst::Ptr, IneqConstraintBase>(
       cst_m, "ComInPolytopeCst")
       .def(py::init<std::shared_ptr<tinyfk::KinematicModel>,
-                    const std::vector<std::string>&, primitive_sdf::BoxSDF::Ptr,
+                    const std::vector<std::string>&, bool,
+                    primitive_sdf::BoxSDF::Ptr,
                     const std::vector<AppliedForceSpec>&>())
       .def("update_kintree", &ComInPolytopeCst::update_kintree)
       .def("is_valid", &ComInPolytopeCst::is_valid)

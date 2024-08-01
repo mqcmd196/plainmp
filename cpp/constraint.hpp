@@ -16,12 +16,32 @@ class ConstraintBase {
  public:
   using Ptr = std::shared_ptr<ConstraintBase>;
   ConstraintBase(std::shared_ptr<tinyfk::KinematicModel> kin,
-                 const std::vector<std::string>& control_joint_names)
+                 const std::vector<std::string>& control_joint_names,
+                 bool with_base)
       : kin_(kin),
-        control_joint_ids_(kin->get_joint_ids(control_joint_names)) {}
+        control_joint_ids_(kin->get_joint_ids(control_joint_names)),
+        with_base_(with_base) {}
 
   void update_kintree(const std::vector<double>& q) {
-    kin_->set_joint_angles(control_joint_ids_, q);
+    if (with_base_) {
+      std::vector<double> q_head(control_joint_ids_.size());
+      std::copy(q.begin(), q.begin() + control_joint_ids_.size(),
+                q_head.begin());
+      kin_->set_joint_angles(control_joint_ids_, q_head);
+      tinyfk::Transform pose;
+      size_t head = control_joint_ids_.size();
+      pose.position.x = q[head];
+      pose.position.y = q[head + 1];
+      pose.position.z = q[head + 2];
+      pose.rotation.setFromRPY(q[head + 3], q[head + 4], q[head + 5]);
+      kin_->set_base_pose(pose);
+    } else {
+      kin_->set_joint_angles(control_joint_ids_, q);
+    }
+  }
+
+  inline size_t q_dim() const {
+    return control_joint_ids_.size() + (with_base_ ? 6 : 0);
   }
 
   virtual std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const = 0;
@@ -32,6 +52,7 @@ class ConstraintBase {
  protected:
   std::shared_ptr<tinyfk::KinematicModel> kin_;
   std::vector<size_t> control_joint_ids_;
+  bool with_base_;
 };
 
 class EqConstraintBase : public ConstraintBase {
@@ -54,9 +75,10 @@ class LinkPoseCst : public EqConstraintBase {
   using Ptr = std::shared_ptr<LinkPoseCst>;
   LinkPoseCst(std::shared_ptr<tinyfk::KinematicModel> kin,
               const std::vector<std::string>& control_joint_names,
+              bool with_base,
               const std::vector<std::string>& link_names,
               const std::vector<Eigen::VectorXd>& poses)
-      : EqConstraintBase(kin, control_joint_names),
+      : EqConstraintBase(kin, control_joint_names, with_base),
         link_ids_(kin_->get_link_ids(link_names)),
         poses_(poses) {
     for (auto& pose : poses_) {
@@ -92,6 +114,7 @@ class SphereCollisionCst : public IneqConstraintBase {
   SphereCollisionCst(
       std::shared_ptr<tinyfk::KinematicModel> kin,
       const std::vector<std::string>& control_joint_names,
+      bool with_base,
       const std::vector<SphereAttachentSpec>& sphere_specs,
       const std::vector<std::pair<std::string, std::string>>& selcol_pairs,
       const std::vector<PrimitiveSDFBase::Ptr>& fixed_sdfs);
@@ -139,9 +162,10 @@ class ComInPolytopeCst : public IneqConstraintBase {
   using Ptr = std::shared_ptr<ComInPolytopeCst>;
   ComInPolytopeCst(std::shared_ptr<tinyfk::KinematicModel> kin,
                    const std::vector<std::string>& control_joint_names,
+                   bool with_base,
                    BoxSDF::Ptr polytope_sdf,
                    const std::vector<AppliedForceSpec> applied_forces)
-      : IneqConstraintBase(kin, control_joint_names),
+      : IneqConstraintBase(kin, control_joint_names, with_base),
         polytope_sdf_(polytope_sdf) {
     polytope_sdf_->width_[2] = 1000;  // adhoc to represent infinite height
     auto force_link_names = std::vector<std::string>();
