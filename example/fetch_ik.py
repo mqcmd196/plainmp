@@ -1,12 +1,13 @@
 import time
 
-from plainmp.ik import solve_ik
-from plainmp.robot_spec import FetchSpec
-from plainmp.utils import sksdf_to_cppsdf
 from skmp.robot.utils import set_robot_state
 from skrobot.model.primitives import Box
 from skrobot.models.fetch import Fetch
 from skrobot.viewers import PyrenderViewer
+
+from plainmp.ik import solve_ik
+from plainmp.robot_spec import FetchSpec
+from plainmp.utils import sksdf_to_cppsdf
 
 # create table sdf
 table = Box([1.0, 2.0, 0.05], with_sdf=True)

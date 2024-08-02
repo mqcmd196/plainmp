@@ -1,13 +1,13 @@
 import time
 
-from plainmp.constraint import EqCompositeCst
-from plainmp.ik import solve_ik
-from plainmp.robot_spec import JaxonSpec
 from skmp.robot.jaxon import Jaxon
 from skmp.robot.utils import set_robot_state
 from skrobot.viewers import PyrenderViewer
 
 import tinyfk
+from plainmp.constraint import EqCompositeCst
+from plainmp.ik import solve_ik
+from plainmp.robot_spec import JaxonSpec
 
 jspec = JaxonSpec()
 com_const = jspec.create_default_com_const()

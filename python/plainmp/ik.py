@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
-from plainmp.constraint import EqConstraintBase, IneqConstraintBase
 from scipy.optimize import Bounds, minimize
+
+from plainmp.constraint import EqConstraintBase, IneqConstraintBase
 
 
 def scipinize(fun: Callable) -> Tuple[Callable, Callable]:

@@ -1,5 +1,6 @@
 try:
-    from skbuild import setup
+    # from skbuild import setup
+    from setuptools import setup
 except ImportError:
     raise Exception
 

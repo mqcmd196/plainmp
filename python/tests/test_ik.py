@@ -1,4 +1,5 @@
 import pytest
+
 from plainmp.ik import solve_ik
 from plainmp.robot_spec import FetchSpec
 

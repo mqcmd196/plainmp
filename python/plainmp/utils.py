@@ -1,5 +1,6 @@
-import plainmp.psdf as psdf
 from skrobot.sdf import BoxSDF, CylinderSDF, UnionSDF
+
+import plainmp.psdf as psdf
 
 
 def sksdf_to_cppsdf(sksdf) -> psdf.SDFBase:

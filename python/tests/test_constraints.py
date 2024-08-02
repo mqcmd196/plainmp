@@ -2,6 +2,7 @@ import copy
 
 import numpy as np
 import pytest
+
 from plainmp.constraint import AppliedForceSpec, ComInPolytopeCst, EqCompositeCst
 from plainmp.psdf import BoxSDF, Pose
 from plainmp.robot_spec import FetchSpec
