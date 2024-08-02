@@ -4,14 +4,14 @@ except ImportError:
     raise Exception
 
 setup(
-    name="fused",
+    name="plainmp",
     version="0.0.1",
     description="experimental",
     author="Hirokazu Ishida",
     license="MIT",
     install_requires=["numpy"],
-    packages=["fused"],
+    packages=["plainmp"],
     package_dir={"": "python"},
-    package_data={"fused": ["__init__.pyi"]},
-    cmake_install_dir="python/fused/",
+    package_data={"plainmp": ["__init__.pyi"]},
+    cmake_install_dir="python/plainmp/",
 )
