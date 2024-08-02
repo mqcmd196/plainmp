@@ -29,9 +29,9 @@ void bind_tinyfk(py::module& m) {
     .def_readonly("name", &urdf::Link::name)
     .def_readonly("id", &urdf::Link::id);
 
-  py::class_<KinematicModel, std::shared_ptr<KinematicModel>>(m_tinyfk, "KinematicModel_cpp");
+  py::class_<KinematicModel, std::shared_ptr<KinematicModel>>(m_tinyfk, "KinematicModel_cpp", py::module_local());
 
-  py::class_<_KinematicModel, std::shared_ptr<_KinematicModel>, KinematicModel>(m_tinyfk, "KinematicModel" )
+  py::class_<_KinematicModel, std::shared_ptr<_KinematicModel>, KinematicModel>(m_tinyfk, "KinematicModel", py::module_local())
       .def(py::init<std::string &>())
       .def("add_new_link", &_KinematicModel::add_new_link_py)
       .def("get_link_ids", &_KinematicModel::get_link_ids)
