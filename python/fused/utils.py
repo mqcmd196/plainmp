@@ -1,4 +1,4 @@
-import fused.psdf as psdf
+import plainmp.psdf as psdf
 from skrobot.sdf import BoxSDF, CylinderSDF, UnionSDF
 
 

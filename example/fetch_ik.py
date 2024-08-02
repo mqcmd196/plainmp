@@ -1,8 +1,8 @@
 import time
 
-from fused.ik import solve_ik
-from fused.robot_spec import FetchSpec
-from fused.utils import sksdf_to_cppsdf
+from plainmp.ik import solve_ik
+from plainmp.robot_spec import FetchSpec
+from plainmp.utils import sksdf_to_cppsdf
 from skmp.robot.utils import set_robot_state
 from skrobot.model.primitives import Box
 from skrobot.models.fetch import Fetch

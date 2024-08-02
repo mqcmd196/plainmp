@@ -1,9 +1,9 @@
 import time
 
 import numpy as np
-from fused.robot_spec import FetchSpec
-from fused.utils import sksdf_to_cppsdf
 from ompl import Planner
+from plainmp.robot_spec import FetchSpec
+from plainmp.utils import sksdf_to_cppsdf
 from skmp.robot.fetch import FetchConfig
 from skmp.robot.utils import set_robot_state
 from skmp.visualization.collision_visualizer import CollisionSphereVisualizationManager

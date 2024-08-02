@@ -1,4 +1,4 @@
-from ._fused.constraint import (  # noqa
+from ._plainmp.constraint import (  # noqa
     AppliedForceSpec,
     ComInPolytopeCst,
     ConstraintBase,

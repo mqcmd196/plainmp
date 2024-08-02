@@ -2,9 +2,9 @@ import copy
 
 import numpy as np
 import pytest
-from fused.constraint import AppliedForceSpec, ComInPolytopeCst, EqCompositeCst
-from fused.psdf import BoxSDF, Pose
-from fused.robot_spec import FetchSpec
+from plainmp.constraint import AppliedForceSpec, ComInPolytopeCst, EqCompositeCst
+from plainmp.psdf import BoxSDF, Pose
+from plainmp.robot_spec import FetchSpec
 
 
 def jac_numerical(const, q0: np.ndarray, eps: float) -> np.ndarray:

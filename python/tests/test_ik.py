@@ -1,6 +1,6 @@
 import pytest
-from fused.ik import solve_ik
-from fused.robot_spec import FetchSpec
+from plainmp.ik import solve_ik
+from plainmp.robot_spec import FetchSpec
 
 
 def _test_ik(with_rot: bool, with_self_collision: bool):

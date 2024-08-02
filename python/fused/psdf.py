@@ -1,4 +1,4 @@
-from ._fused.primitive_sdf import (  # noqa
+from ._plainmp.primitive_sdf import (  # noqa
     BoxSDF,
     CylinderSDF,
     Pose,

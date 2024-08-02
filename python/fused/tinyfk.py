@@ -1,1 +1,1 @@
-from ._fused.tinyfk import KinematicModel  # noqa
+from ._plainmp.tinyfk import KinematicModel  # noqa

@@ -1,8 +1,8 @@
 import time
 
-from fused.constraint import EqCompositeCst
-from fused.ik import solve_ik
-from fused.robot_spec import JaxonSpec
+from plainmp.constraint import EqCompositeCst
+from plainmp.ik import solve_ik
+from plainmp.robot_spec import JaxonSpec
 from skmp.robot.jaxon import Jaxon
 from skmp.robot.utils import set_robot_state
 from skrobot.viewers import PyrenderViewer

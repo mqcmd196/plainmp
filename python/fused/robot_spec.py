@@ -5,15 +5,15 @@ from typing import Dict, List, Sequence, Tuple, Union
 
 import numpy as np
 import yaml
-from fused.constraint import (
+from plainmp.constraint import (
     ComInPolytopeCst,
     LinkPoseCst,
     SphereAttachentSpec,
     SphereCollisionCst,
 )
-from fused.psdf import BoxSDF, Pose
-from fused.tinyfk import KinematicModel
-from fused.utils import sksdf_to_cppsdf
+from plainmp.psdf import BoxSDF, Pose
+from plainmp.tinyfk import KinematicModel
+from plainmp.utils import sksdf_to_cppsdf
 from skrobot.coordinates import CascadedCoords
 from skrobot.coordinates.math import rotation_matrix, rpy_angle
 from skrobot.model.primitives import Box, Cylinder, Sphere
