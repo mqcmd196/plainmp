@@ -149,7 +149,7 @@ class FetchSpec(RobotSpec):
         return self_body_obstacles
 
     def create_gripper_pose_const(self, link_pose: np.ndarray) -> LinkPoseCst:
-        return self.create_pose_const(["wrist_roll_link"], [link_pose])
+        return self.create_pose_const(["gripper_link"], [link_pose])
 
     @staticmethod
     def angle_bounds() -> Tuple[np.ndarray, np.ndarray]:
