@@ -151,7 +151,8 @@ class FetchSpec(RobotSpec):
     def create_gripper_pose_const(self, link_pose: np.ndarray) -> LinkPoseCst:
         return self.create_pose_const(["wrist_roll_link"], [link_pose])
 
-    def angle_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
+    @staticmethod
+    def angle_bounds() -> Tuple[np.ndarray, np.ndarray]:
         # it takes time to parse the urdf file so we do it here...
         min_angles = np.array(
             [0.0, -1.6056, -1.221, -np.pi * 2, -2.251, -np.pi * 2, -2.16, -np.pi * 2]
@@ -160,6 +161,16 @@ class FetchSpec(RobotSpec):
             [0.38615, 1.6056, 1.518, np.pi * 2, 2.251, np.pi * 2, 2.16, np.pi * 2]
         )
         return min_angles, max_angles
+
+    @staticmethod
+    def q_reset_pose() -> np.ndarray:
+        return np.array([0.0, 1.31999949, 1.40000015, -0.20000077, 1.71999929, 0.0, 1.6600001, 0.0])
+
+    @staticmethod
+    def get_reachable_box() -> Tuple[np.ndarray, np.ndarray]:
+        lb_reachable = np.array([-0.60046263, -1.08329689, -0.18025853])
+        ub_reachable = np.array([1.10785484, 1.08329689, 2.12170273])
+        return lb_reachable, ub_reachable
 
 
 class JaxonSpec(RobotSpec):

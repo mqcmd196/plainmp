@@ -9,8 +9,7 @@ from plainmp.robot_spec import FetchSpec
 
 
 def jac_numerical(const, q0: np.ndarray, eps: float) -> np.ndarray:
-    const.update_kintree(q0)
-    f0, _ = const.evaluate()
+    f0, _ = const.evaluate(q0)
     dim_domain = len(q0)
     dim_codomain = len(f0)
 
@@ -18,8 +17,7 @@ def jac_numerical(const, q0: np.ndarray, eps: float) -> np.ndarray:
     for i in range(dim_domain):
         q1 = copy.deepcopy(q0)
         q1[i] += eps
-        const.update_kintree(q1)
-        f1, _ = const.evaluate()
+        f1, _ = const.evaluate(q1)
         jac[:, i] = (f1 - f0) / eps
     return jac
 
@@ -28,8 +26,7 @@ def check_jacobian(const, dim: int, eps: float = 1e-7, decimal: int = 4, std: fl
     # check single jacobian
     for _ in range(10):
         q_test = np.random.randn(dim) * std
-        const.update_kintree(q_test)
-        _, jac_anal = const.evaluate()
+        _, jac_anal = const.evaluate(q_test)
         jac_numel = jac_numerical(const, q_test, eps)
         np.testing.assert_almost_equal(jac_anal, jac_numel, decimal=decimal)
 

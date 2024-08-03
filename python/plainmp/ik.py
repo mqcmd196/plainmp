@@ -50,8 +50,7 @@ def solve_ik(
         config = IKConfig()
 
     def objective_fun(q: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        eq_const.update_kintree(q)
-        vals, jac = eq_const.evaluate()
+        vals, jac = eq_const.evaluate(q)
         f = vals.dot(vals)
         grad = 2 * vals.dot(jac)
         return f, grad
@@ -63,8 +62,7 @@ def solve_ik(
     if ineq_const is not None:
 
         def fun_ineq(q: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-            ineq_const.update_kintree(q)
-            val, jac = ineq_const.evaluate()
+            val, jac = ineq_const.evaluate(q)
             margin_numerical = 1e-6
             return val - margin_numerical, jac
 
