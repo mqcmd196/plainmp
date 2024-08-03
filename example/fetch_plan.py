@@ -1,6 +1,6 @@
-import numpy as np
 import time
-from ompl import Planner
+
+import numpy as np
 from skmp.robot.fetch import FetchConfig
 from skmp.robot.utils import set_robot_state
 from skmp.visualization.collision_visualizer import CollisionSphereVisualizationManager
