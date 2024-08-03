@@ -48,7 +48,14 @@ class ConstraintBase {
     return control_joint_ids_.size() + (with_base_ ? 6 : 0);
   }
 
-  virtual std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const = 0;
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
+      const std::vector<double>& q) {
+    update_kintree(q);
+    return evaluate_dirty();
+  }
+
+  virtual std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate_dirty()
+      const = 0;
   virtual size_t cst_dim() const = 0;
   virtual bool is_equality() const = 0;
   virtual ~ConstraintBase() = default;
@@ -74,8 +81,12 @@ class IneqConstraintBase : public ConstraintBase {
  public:
   using Ptr = std::shared_ptr<IneqConstraintBase>;
   using ConstraintBase::ConstraintBase;
-  virtual bool is_valid() const = 0;
+  bool is_valid(const std::vector<double>& q) {
+    update_kintree(q);
+    return is_valid_dirty();
+  }
   bool is_equality() const override { return false; }
+  virtual bool is_valid_dirty() const = 0;
 };
 
 class LinkPoseCst : public EqConstraintBase {
@@ -95,7 +106,7 @@ class LinkPoseCst : public EqConstraintBase {
       }
     }
   }
-  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const override;
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate_dirty() const override;
   size_t cst_dim() const {
     size_t dim = 0;
     for (auto& pose : poses_) {
@@ -131,8 +142,8 @@ class SphereCollisionCst : public IneqConstraintBase {
     sdfs_ = sdfs;
   }
 
-  bool is_valid() const override;
-  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const override;
+  bool is_valid_dirty() const override;
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate_dirty() const override;
 
   size_t cst_dim() const {
     if (selcol_pairs_ids_.size() == 0) {
@@ -184,8 +195,8 @@ class ComInPolytopeCst : public IneqConstraintBase {
     force_link_ids_ = kin_->get_link_ids(force_link_names);
   }
 
-  bool is_valid() const override;
-  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() const override;
+  bool is_valid_dirty() const override;
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate_dirty() const override;
 
   size_t cst_dim() const { return 1; }
 

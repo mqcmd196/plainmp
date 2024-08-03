@@ -10,7 +10,8 @@ namespace cst {
 
 namespace py = pybind11;
 
-std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate() const {
+std::pair<Eigen::VectorXd, Eigen::MatrixXd> LinkPoseCst::evaluate_dirty()
+    const {
   Eigen::VectorXd vals(cst_dim());
   Eigen::MatrixXd jac(cst_dim(), q_dim());
   tinyfk::Transform pose;
@@ -83,7 +84,7 @@ SphereCollisionCst::SphereCollisionCst(
   selcol_pairs_ids_ = selcol_pairs_ids;
 }
 
-bool SphereCollisionCst::is_valid() const {
+bool SphereCollisionCst::is_valid_dirty() const {
   tinyfk::Transform pose;
   for (size_t i = 0; i < sphere_ids_.size(); i++) {
     if (sphere_specs_[i].ignore_collision) {
@@ -112,7 +113,7 @@ bool SphereCollisionCst::is_valid() const {
   }
   return true;
 }
-std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
+std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate_dirty()
     const {
   auto all_sdfs = get_all_sdfs();
 
@@ -204,7 +205,7 @@ std::pair<Eigen::VectorXd, Eigen::MatrixXd> SphereCollisionCst::evaluate()
   }
 }
 
-bool ComInPolytopeCst::is_valid() const {
+bool ComInPolytopeCst::is_valid_dirty() const {
   // COPIED from evaluate() >> START
   auto com_tmp = kin_->get_com();
   Eigen::Vector3d com(com_tmp.x, com_tmp.y, com_tmp.z);
@@ -225,7 +226,8 @@ bool ComInPolytopeCst::is_valid() const {
   return polytope_sdf_->evaluate(com) < 0;
 }
 
-std::pair<Eigen::VectorXd, Eigen::MatrixXd> ComInPolytopeCst::evaluate() const {
+std::pair<Eigen::VectorXd, Eigen::MatrixXd> ComInPolytopeCst::evaluate_dirty()
+    const {
   Eigen::VectorXd vals(cst_dim());
   Eigen::MatrixXd jac(cst_dim(), q_dim());
 

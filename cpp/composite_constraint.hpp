@@ -30,14 +30,17 @@ class CompositeConstraintBase {
     constraints_.front()->update_kintree(q);
   }
 
-  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate() {
+  std::pair<Eigen::VectorXd, Eigen::MatrixXd> evaluate(
+      const std::vector<double>& q) {
+    update_kintree(q);
+
     size_t dim = this->cst_dim();
     Eigen::VectorXd vals(dim);
     Eigen::MatrixXd jac(dim, q_dim());
     size_t head = 0;
     for (const auto& cst : constraints_) {
       size_t dim_local = cst->cst_dim();
-      auto [vals_sub, jac_sub] = cst->evaluate();
+      auto [vals_sub, jac_sub] = cst->evaluate_dirty();
       vals.segment(head, dim_local) = vals_sub;
       jac.block(head, 0, dim_local, q_dim()) = jac_sub;
       head += dim_local;
@@ -68,9 +71,10 @@ class IneqCompositeCst
  public:
   using Ptr = std::shared_ptr<IneqCompositeCst>;
   using CompositeConstraintBase::CompositeConstraintBase;
-  bool is_valid() const {
+  bool is_valid(const std::vector<double>& q) {
+    update_kintree(q);
     for (const auto& cst : constraints_) {
-      if (!cst->is_valid())
+      if (!cst->is_valid_dirty())
         return false;
     }
     return true;
