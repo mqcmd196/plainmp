@@ -8,7 +8,7 @@ find_package(Eigen3 REQUIRED)
 ADD_DEFINITIONS(-DEIGEN_NO_DEBUG)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
-set(BUILD_PYTHON_INTERFACE OFF)
+option(BUILD_PYTHON_INTERFACE OFF)
 add_subdirectory("tinyfk")
 include_directories("tinyfk/include")
 include_directories("primitive_sdf")
