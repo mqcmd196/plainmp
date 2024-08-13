@@ -9,7 +9,7 @@ setup(
     description="experimental",
     author="Hirokazu Ishida",
     license="MIT",
-    install_requires=["numpy", "scipy", "scikit-robot", "pyyaml", "ompl-thin"],
+    install_requires=["numpy", "scipy", "scikit-build", "scikit-robot", "pyyaml", "ompl-thin"],
     packages=["plainmp"],
     package_dir={"": "python"},
     package_data={"plainmp": ["*.pyi", "conf/*.yaml"]},
